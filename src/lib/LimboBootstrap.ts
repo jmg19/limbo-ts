@@ -1,7 +1,9 @@
 import { LimboComponent } from "./LimboComponent";
+import { LimboLoop } from "./LimboLoop";
 import { LimboModel } from "./LimboModel";
 
 const renderedComponents: { [key: string]: LimboComponent<unknown> } = {};
+const renderedLoops: { [key: string]: LimboLoop } = {};
 let aplicationComponents: unknown;
 
 const LimboCleaner = () => {
@@ -56,6 +58,32 @@ const LimboComponentsBootstrap = (element: HTMLElement, options: LimboBootstrapO
       console.error(`Implementation for Component ${componentName} was not found!`);
     }
   });
+
+  // const loopsToRender = element.querySelectorAll("[data-limbo-loop]");
+  // loopsToRender.forEach((loopToRender) => {
+  //   const loopAlias = loopToRender.getAttribute("data-limbo-loop");
+  //   if (!options.parentComponentModel) {
+  //     console.error("Parent Component Model not found...");
+  //     return;
+  //   }
+
+  //   if (!loopAlias) {
+  //     console.error("data-limbo-loop value should not be empty...");
+  //     return;
+  //   }
+
+  //   const matches = [...loopAlias.matchAll(/{{(\w+) of (model.\..+)}}"/g)];
+  //   const itemName = matches[0][1];
+  //   const modelReference = matches[0][2];
+  //   const modelReferenceValue = options.parentComponentModel.getByModelReference(modelReference);
+
+  //   if (!Array.isArray(modelReferenceValue)) {
+  //     console.error("Loop value must be an array...");
+  //     return;
+  //   }
+
+  //   modelReferenceValue.forEach((item, index) => {});
+  // });
 
   LimboCleaner();
 };

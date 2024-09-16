@@ -4,6 +4,7 @@ type LimboNodeParams = {
   rootReference?: string;
   attributeNameToReplaceValue?: string;
   isTextNode?: boolean;
+  modelPrefix?: string;
 };
 
 export class LimboNode<T = string | number | boolean | ((...params: unknown[]) => string | number | boolean)> {
@@ -13,6 +14,7 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
   private attributeNameToReplaceValue: string;
   private modelReferenceInView: string;
   private rootReference?: string;
+  private modelPrefix = "model";
 
   constructor(
     details: LimboNodeParams,
@@ -24,6 +26,7 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
     this.attributeNameToReplaceValue = details.attributeNameToReplaceValue || "";
     this.modelReferenceInView = details.modelReferenceInView;
     this.rootReference = details.rootReference;
+    this.modelPrefix = details.modelPrefix || this.modelPrefix;
   }
 
   public set value(value: T) {
@@ -60,7 +63,7 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
 
   public get modelReference(): string {
     if (this.rootReference) {
-      return this.modelReference.replace("model", this.rootReference);
+      return this.modelReference.replace(this.modelPrefix, this.rootReference);
     }
     return this.modelReferenceInView;
   }
