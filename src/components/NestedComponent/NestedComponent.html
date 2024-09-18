@@ -2,5 +2,6 @@
 <p>Nested Property Value: {{model.value}}</p>
 <div id="NestedComponentOfNested-1" data-limbo-component="NestedOfNestedComponent" data-limbo-model="{{model.nestedOfNested}}"></div>
 <div data-limbo-loop="{{item of model.array}}">
-  <p>item number {{#index}} with value {{item.value}}</p>
+  <p>item number {{#index}} with value {{item}}</p>
+  <!-- <div id="NestedComponentOfNested-{{#index}}" data-limbo-component="NestedOfNestedComponent" data-limbo-model="{{item}}"></div> -->
 </div>  

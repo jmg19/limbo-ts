@@ -1,13 +1,15 @@
 import { LimboNode } from "./LimboNode";
 
-export const generateLimboNodes: (modelName: string, html: string, htmlContainer: HTMLElement) => { [key: string]: LimboNode[] } = (
-  modelName,
-  html,
-  htmlContainer,
-) => {
+export const generateLimboNodes: (
+  modelName: string,
+  html: string,
+  htmlContainer: HTMLElement,
+  modelPrefix?: string,
+) => { [key: string]: LimboNode[] } = (modelName, html, htmlContainer, modelPrefix) => {
   const limboNodes: { [key: string]: LimboNode[] } = {};
-  const regex = new RegExp(`([a-zA-z-]+)="[^"]*({{${modelName}\\..+}})[^"]*"`, "g");
+  const regex = new RegExp(`([a-zA-z-]+)="[^"]*(({{${modelName}\\..+}})|({{${modelName}}}))[^"]*"`, "g");
   const regexIt = html.matchAll(regex);
+
   for (const match of regexIt) {
     const attributeName = match[1];
     const modelReference = match[2];
@@ -26,6 +28,7 @@ export const generateLimboNodes: (modelName: string, html: string, htmlContainer
             node,
             modelReferenceInView: modelReference,
             attributeNameToReplaceValue: attributeName,
+            modelPrefix,
           }),
         );
       }
@@ -33,7 +36,7 @@ export const generateLimboNodes: (modelName: string, html: string, htmlContainer
   }
 
   const treeWalker = document.createTreeWalker(htmlContainer, NodeFilter.SHOW_TEXT, (node) => {
-    const textNodeRegex = new RegExp(`{{${modelName}\\..+}}`, "g");
+    const textNodeRegex = new RegExp(`{{${modelName}\\..+}}|{{${modelName}}}`, "g");
     const result = textNodeRegex.test((node as Text).textContent || "");
     return result ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
   });
@@ -43,7 +46,7 @@ export const generateLimboNodes: (modelName: string, html: string, htmlContainer
     const node = currentNode as Text;
 
     if (node.textContent) {
-      const textNodeRegex = new RegExp(`{{${modelName}\\..+}}`, "g");
+      const textNodeRegex = new RegExp(`{{${modelName}\\..+}}|{{${modelName}}}`, "g");
       const matchResult = node.textContent.match(textNodeRegex);
 
       if (matchResult && matchResult.length > 0) {
@@ -56,6 +59,7 @@ export const generateLimboNodes: (modelName: string, html: string, htmlContainer
             node,
             modelReferenceInView: modelReference,
             isTextNode: true,
+            modelPrefix,
           }),
         );
       }

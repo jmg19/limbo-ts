@@ -4,6 +4,14 @@ import { NestedOfNestedComponent } from "./components/NestedOfNested/NestedOfNes
 import Limbo from "./lib";
 import "./style.css";
 
-Limbo.LimboComponentsBootstrap(document.querySelector<HTMLDivElement>("#app")!, {
-  components: { ExampleComponent, NestedComponent, NestedOfNestedComponent },
-});
+(() => {
+  const appElement = document.querySelector<HTMLDivElement>("#app");
+  if (!appElement) {
+    console.error("div with id 'app' is necessary to start the Limbo Application");
+    return;
+  }
+
+  Limbo.LimboComponentsBootstrap(appElement, {
+    components: { ExampleComponent, NestedComponent, NestedOfNestedComponent },
+  });
+})();

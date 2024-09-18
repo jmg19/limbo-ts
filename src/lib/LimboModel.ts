@@ -3,7 +3,7 @@ import { LimboNode } from "./LimboNode";
 import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
-type LimboNodeParams<T> = {
+export type LimboNodeParams<T> = {
   model: Required<T>;
   alias?: string;
   LimboNodes?: { [key: string]: LimboNode[] };
@@ -38,7 +38,10 @@ export class _LimboModel<T> {
           }
 
           if (Array.isArray(value)) {
-            this.model[key] = new LimboArray(...value) as T[Extract<keyof T, string>];
+            this.model[key] = new LimboArray(value, { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
+              keyof T,
+              string
+            >];
           } else {
             this.model[key] = value;
           }
@@ -99,7 +102,7 @@ export class _LimboModel<T> {
       this.model[key] = model as T[Extract<keyof T, string>];
       return model.getModelBuilder();
     } else if (Array.isArray(this.model[key])) {
-      const array = new LimboArray(...this.model[key]);
+      const array = new LimboArray(this.model[key], { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes });
       this.model[key] = array as T[Extract<keyof T, string>];
       return array.getModelBuilder();
     }
@@ -116,7 +119,10 @@ export class _LimboModel<T> {
           LimboNodes: this.limboNodes,
         }) as T[Extract<keyof T, string>];
       } else if (typeof this.model[key] === "object" && Array.isArray(this.model[key])) {
-        this.model[key] = new LimboArray(...this.model[key]) as T[Extract<keyof T, string>];
+        this.model[key] = new LimboArray(this.model[key], { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
+          keyof T,
+          string
+        >];
       }
     }
   }
@@ -254,28 +260,3 @@ export class _LimboModel<T> {
 }
 
 export type LimboModel<T> = _LimboModel<T> & T;
-
-type CreateAndBindResponse<T> = {
-  model: LimboModel<T>;
-  toBuild: boolean;
-};
-
-export const LimboModelFactory = {
-  createAndBind: <T>(data: LimboNodeParams<T>): CreateAndBindResponse<T> => {
-    if (data.model instanceof _LimboModel) {
-      if (data.alias) {
-        data.model.setAlias(data.alias);
-      }
-
-      if (data.LimboNodes) {
-        data.model.addChildLimboNodes(data.LimboNodes);
-      }
-
-      return {
-        model: data.model as LimboModel<T>,
-        toBuild: false,
-      };
-    }
-    return { model: new _LimboModel(data) as LimboModel<T>, toBuild: true };
-  },
-};

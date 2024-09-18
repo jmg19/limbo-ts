@@ -1,5 +1,6 @@
 import LimboComponentsBootstrap from "./LimboBootstrap";
-import { LimboModel, LimboModelFactory } from "./LimboModel";
+import { LimboModelFactory } from "./LimboFactory";
+import { LimboModel } from "./LimboModel";
 import { LimboNode } from "./LimboNode";
 import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
@@ -20,10 +21,10 @@ export abstract class LimboComponent<T> {
     this.htmlTemplate = html;
     this.htmlContainer.innerHTML = this.htmlTemplate;
     this.limboNodes = generateLimboNodes("model", html, this.htmlContainer);
-    this.renderComponent(model);
+    this.renderComponent(model).then(() => this.OnComponentLoaded());
   }
 
-  private renderComponent(model: Required<T>) {
+  private async renderComponent(model: Required<T>) {
     const creationResponse = LimboModelFactory.createAndBind({ model, LimboNodes: this.limboNodes });
     this.limboModel = creationResponse.model;
     if (creationResponse.toBuild) {
@@ -49,4 +50,6 @@ export abstract class LimboComponent<T> {
       console.error(`Element with id ${this.componentId} not found`);
     }
   }
+
+  protected abstract OnComponentLoaded(): void;
 }

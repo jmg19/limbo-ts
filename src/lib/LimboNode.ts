@@ -61,6 +61,16 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
     this.rootReference = modelReference;
   }
 
+  equals(node: LimboNode): boolean {
+    return (
+      this.isTextNode === node.isTextNode &&
+      this.attributeNameToReplaceValue === node.attributeNameToReplaceValue &&
+      this.modelReferenceInView === node.modelReferenceInView &&
+      this.rootReference === node.rootReference &&
+      this.modelPrefix === node.modelPrefix
+    );
+  }
+
   public get modelReference(): string {
     if (this.rootReference) {
       return this.modelReference.replace(this.modelPrefix, this.rootReference);

@@ -13,16 +13,24 @@ type ExampleComponentModel = {
     nestedOfNested: {
       value: string;
     };
+    array: string[];
   };
 };
 
 export class ExampleComponent extends LimboComponent<ExampleComponentModel> {
   constructor(
     componentId: string,
-    model: ExampleComponentModel = { viteLogo, typescriptLogo, counter: 0, nested: { value: "", nestedOfNested: { value: "" } } },
+    model: ExampleComponentModel = {
+      viteLogo,
+      typescriptLogo,
+      counter: 0,
+      nested: { value: "", nestedOfNested: { value: "" }, array: ["A", "B", "C", "F", "D", "A", "A", "A"] },
+    },
   ) {
     super(componentId, model, html);
+  }
 
+  protected override OnComponentLoaded(): void {
     document.getElementById("counter")?.addEventListener("click", () => {
       this.limboModel!.counter++;
     });

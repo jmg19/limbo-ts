@@ -9,6 +9,20 @@ type LimboArrayOptions = {
 };
 
 export class LimboArray<T> implements Array<T> {
+  addLoopLimboNodes(itemLimboNodes: { [key: string]: LimboNode[] }, index: number, itemName: string) {
+    for (const key in itemLimboNodes) {
+      const realKey = key.replace(itemName, `${this.alias}[${index}]`);
+      if (!this.limboNodes[realKey]) {
+        this.limboNodes[realKey] = [];
+      }
+
+      itemLimboNodes[key].forEach((limboNode) => {
+        limboNode.setRootReference(`${this.alias}[${index}]`);
+        this.limboNodes[realKey].push(limboNode);
+      });
+    }
+  }
+
   private array: T[] = [];
   private lastIndex: number = -1;
   private alias: string = "model";
@@ -99,6 +113,10 @@ export class LimboArray<T> implements Array<T> {
   setAlias(alias: string) {
     this.alias = alias;
     this.redefineAlias();
+  }
+
+  getArrayReference(): string {
+    return this.alias;
   }
 
   private parseToLimbo<S>(value: S, index: number): S | LimboModel<S> | LimboArray<S> {
