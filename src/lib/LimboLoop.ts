@@ -2,7 +2,6 @@ import { LimboArray } from "./LimboArray";
 import LimboComponentsBootstrap from "./LimboBootstrap";
 import { _LimboModel } from "./LimboModel";
 import { LimboNode } from "./LimboNode";
-import { ModelBinderNode } from "./ModelBinderNode";
 import { generateLimboNodes } from "./utils";
 
 export class LimboLoop {
@@ -29,7 +28,12 @@ export class LimboLoop {
       newElement.removeAttribute("data-limbo-loop");
       newElement.id = `${this.baseLoopElement.id}-${index}`;
 
-      const itemLimboNodes = generateLimboNodes(this.itemName, newElement.outerHTML, newElement, this.itemName);
+      const itemLimboNodes = generateLimboNodes(
+        this.itemName,
+        newElement.outerHTML,
+        newElement,
+        `${this.array.getArrayReference()}[${index}]`,
+      );
       for (const key in itemLimboNodes) {
         if (!this.limboNodes[key]) {
           this.limboNodes[key] = [];
@@ -45,16 +49,12 @@ export class LimboLoop {
 
     this.baseLoopElement.style.display = "none";
 
-    let binderNode: ModelBinderNode | null = this.array.getModelBinder();
-    while (binderNode) {
-      binderNode.bind();
-      binderNode = binderNode.next;
-    }
+    this.array.bindValues();
 
     this.array.forEach((item, index) => {
       if (item instanceof _LimboModel) {
         const loopElement = this.loopElements[`${this.itemName}-${index}`];
-        LimboComponentsBootstrap(loopElement, { parentComponentModel: item });
+        LimboComponentsBootstrap(loopElement, { loopItemModel: item });
       }
     });
   }

@@ -6,7 +6,7 @@ type CreateAndBindResponse<T> = {
 };
 
 export const LimboModelFactory = {
-  createAndBind: <T>(data: LimboNodeParams<T>): CreateAndBindResponse<T> => {
+  create: <T>(data: LimboNodeParams<T>): CreateAndBindResponse<T> => {
     if (data.model instanceof _LimboModel) {
       if (data.alias) {
         data.model.setAlias(data.alias);

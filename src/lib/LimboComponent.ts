@@ -2,21 +2,21 @@ import LimboComponentsBootstrap from "./LimboBootstrap";
 import { LimboModelFactory } from "./LimboFactory";
 import { LimboModel } from "./LimboModel";
 import { LimboNode } from "./LimboNode";
-import { ModelBinderNode } from "./ModelBinderNode";
-import { ModelBuilderNode } from "./ModelBuilderNode";
 import { generateLimboNodes } from "./utils";
 
 export abstract class LimboComponent<T> {
   private htmlTemplate: string = "";
   private htmlContainer: HTMLElement;
   private limboNodes: { [key: string]: LimboNode[] } = {};
-  protected limboModel?: LimboModel<T>;
+  private _limboModel: LimboModel<T> = LimboModelFactory.create({ model: {} }).model as LimboModel<T>;
+  protected componentElement: HTMLElement | null = null;
 
   constructor(
     protected componentId: string,
-    model: Required<T>,
     html: string,
+    model?: T,
   ) {
+    this.componentElement = document.getElementById(this.componentId);
     this.htmlContainer = document.createElement("div");
     this.htmlTemplate = html;
     this.htmlContainer.innerHTML = this.htmlTemplate;
@@ -24,28 +24,30 @@ export abstract class LimboComponent<T> {
     this.renderComponent(model).then(() => this.OnComponentLoaded());
   }
 
-  private async renderComponent(model: Required<T>) {
-    const creationResponse = LimboModelFactory.createAndBind({ model, LimboNodes: this.limboNodes });
-    this.limboModel = creationResponse.model;
+  protected get limboModel(): LimboModel<T> {
+    return this._limboModel;
+  }
+
+  protected set limboModel(_: LimboModel<T>) {
+    throw new Error("Cannot set limboModel. Use setModel method instead.");
+  }
+
+  protected setModel(model: T) {
+    this.renderComponent(model);
+  }
+
+  private async renderComponent(model?: T) {
+    const creationResponse = LimboModelFactory.create({ model, LimboNodes: this.limboNodes });
+    this._limboModel = creationResponse.model as LimboModel<T>;
     if (creationResponse.toBuild) {
-      let builderNode: ModelBuilderNode | null = this.limboModel.getModelBuilder();
-
-      while (builderNode) {
-        builderNode.build();
-        builderNode = builderNode.next;
-      }
+      this._limboModel.buildValues();
     }
 
-    let binderNode: ModelBinderNode | null = this.limboModel.getModelBinder();
-    while (binderNode) {
-      binderNode.bind();
-      binderNode = binderNode.next;
-    }
+    this._limboModel.bindValues();
 
-    const componentElement = document.getElementById(this.componentId);
-    if (componentElement) {
-      this.htmlContainer.childNodes.forEach((node) => componentElement.appendChild(node));
-      LimboComponentsBootstrap(componentElement, { parentComponentModel: this.limboModel });
+    if (this.componentElement) {
+      this.htmlContainer.childNodes.forEach((node) => this.componentElement?.appendChild(node));
+      LimboComponentsBootstrap(this.componentElement, { parentComponentModel: this._limboModel });
     } else {
       console.error(`Element with id ${this.componentId} not found`);
     }

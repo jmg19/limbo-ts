@@ -19,6 +19,7 @@ const LimboCleaner = async () => {
 type LimboBootstrapOptions = {
   components?: unknown;
   parentComponentModel?: LimboModel<unknown>;
+  loopItemModel?: LimboModel<unknown>;
   modelPrefix?: string;
 };
 
@@ -89,6 +90,10 @@ function bootstrapLoops(element: HTMLElement, options: LimboBootstrapOptions, mo
 
     const modelReferenceValue = options.parentComponentModel.getByModelReference(modelReference);
 
+    if (!modelReferenceValue) {
+      return;
+    }
+
     if (!(modelReferenceValue instanceof LimboArray)) {
       console.error("modelReference", "Value must be an instance of LimboArray");
       return;
@@ -128,7 +133,7 @@ function bootstrapComponents(element: HTMLElement, options: LimboBootstrapOption
     }
 
     if (renderedComponents[componentId]) {
-      console.error(`Component with id ${componentId} already rendered`);
+      console.info(`Component with id ${componentId} already rendered`);
       return;
     }
 
@@ -143,11 +148,24 @@ function bootstrapComponents(element: HTMLElement, options: LimboBootstrapOption
       return;
     }
 
+    if (options.loopItemModel && !(options.loopItemModel instanceof _LimboModel)) {
+      console.error("Loop Item Model must be an instance of LimboModel");
+      console.log(options.loopItemModel);
+      return;
+    }
+
     if (typeof (aplicationComponents as { [key: string]: unknown })[componentName] === "function") {
       let model = undefined;
       if (options.parentComponentModel) {
         const modelReference = documentToRender.getAttribute("data-limbo-model") as string;
         model = options.parentComponentModel.getByModelReference(modelReference);
+        if (!model) {
+          return;
+        }
+      }
+
+      if (options.loopItemModel) {
+        model = options.loopItemModel;
       }
 
       const component = new aplicationComponents[componentName](componentId, model) as LimboComponent<unknown>;

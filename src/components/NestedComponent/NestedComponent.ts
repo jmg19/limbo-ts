@@ -11,11 +11,8 @@ type NestedComponentModel = {
 };
 
 export class NestedComponent extends LimboComponent<NestedComponentModel> {
-  constructor(
-    componentId: string,
-    model: NestedComponentModel = { value: "", nestedOfNested: { value: "" }, array: ["A", "A", "A", "A", "A", "A", "A", "A"] },
-  ) {
-    super(componentId, model, html);
+  constructor(componentId: string, model: NestedComponentModel) {
+    super(componentId, html, model);
   }
 
   protected override OnComponentLoaded(): void {

@@ -9,20 +9,6 @@ type LimboArrayOptions = {
 };
 
 export class LimboArray<T> implements Array<T> {
-  addLoopLimboNodes(itemLimboNodes: { [key: string]: LimboNode[] }, index: number, itemName: string) {
-    for (const key in itemLimboNodes) {
-      const realKey = key.replace(itemName, `${this.alias}[${index}]`);
-      if (!this.limboNodes[realKey]) {
-        this.limboNodes[realKey] = [];
-      }
-
-      itemLimboNodes[key].forEach((limboNode) => {
-        limboNode.setRootReference(`${this.alias}[${index}]`);
-        this.limboNodes[realKey].push(limboNode);
-      });
-    }
-  }
-
   private array: T[] = [];
   private lastIndex: number = -1;
   private alias: string = "model";
@@ -73,14 +59,18 @@ export class LimboArray<T> implements Array<T> {
           alias: `${this.alias}[${index}]`,
           LimboNodes: this.limboNodes,
         });
+
         this.array[index] = limboArray as T;
+
         return limboArray.getModelBuilder();
       } else {
         const model = new _LimboModel({
-          model: this.array[index] as Required<unknown>,
+          model: this.array[index],
           alias: `${this.alias}[${index}]`,
           LimboNodes: this.limboNodes,
         });
+
+        this.array[index] = model as T;
 
         return model.getModelBuilder();
       }
@@ -110,6 +100,36 @@ export class LimboArray<T> implements Array<T> {
     return modelBuilderNode;
   }
 
+  async bindValues() {
+    let binderNode: ModelBinderNode | null = this.getModelBinder();
+    while (binderNode) {
+      binderNode.bind();
+      binderNode = binderNode.next;
+    }
+  }
+
+  buildValues() {
+    let builderNode: ModelBuilderNode | null = this.getModelBuilder();
+    while (builderNode) {
+      builderNode.build();
+      builderNode = builderNode.next;
+    }
+  }
+
+  addLoopLimboNodes(itemLimboNodes: { [key: string]: LimboNode[] }, index: number, itemName: string) {
+    for (const key in itemLimboNodes) {
+      const realKey = key.replace(itemName, `${this.alias}[${index}]`);
+      if (!this.limboNodes[realKey]) {
+        this.limboNodes[realKey] = [];
+      }
+
+      itemLimboNodes[key].forEach((limboNode) => {
+        limboNode.setRootReference(`${this.alias}[${index}]`);
+        this.limboNodes[realKey].push(limboNode);
+      });
+    }
+  }
+
   setAlias(alias: string) {
     this.alias = alias;
     this.redefineAlias();
@@ -123,36 +143,37 @@ export class LimboArray<T> implements Array<T> {
     if (value instanceof _LimboModel) {
       (value as _LimboModel<S>).setAlias(`${this.alias}[${index}]`);
       (value as _LimboModel<S>).setLimboNodes(this.limboNodes);
+      (value as _LimboModel<S>).bindValues();
+
       return value;
     }
 
     if (value instanceof LimboArray) {
       (value as LimboArray<S>).setAlias(`${this.alias}[${index}]`);
       (value as LimboArray<S>).setLimboNodes(this.limboNodes);
+      (value as LimboArray<S>).bindValues();
+
       return value;
     }
 
     if (typeof value === "object" && !(value instanceof Date)) {
       if (Array.isArray(value)) {
-        return new LimboArray(value, { alias: `${this.alias}[${index}]`, LimboNodes: this.limboNodes });
+        const limboArray = new LimboArray(value, { alias: `${this.alias}[${index}]`, LimboNodes: this.limboNodes });
+
+        limboArray.buildValues();
+        limboArray.bindValues();
+
+        return limboArray;
       } else {
         const model = new _LimboModel<S>({
-          model: value as Required<S>,
+          model: value,
           alias: `${this.alias}[${index}]`,
           LimboNodes: this.limboNodes,
         });
 
-        let builderNode: ModelBuilderNode | null = model.getModelBuilder();
-        while (builderNode) {
-          builderNode.build();
-          builderNode = builderNode.next;
-        }
+        model.buildValues();
 
-        let binderNode: ModelBinderNode | null = model.getModelBinder();
-        while (binderNode) {
-          binderNode.bind();
-          binderNode = binderNode.next;
-        }
+        model.bindValues();
 
         return model as LimboModel<S>;
       }
@@ -163,14 +184,14 @@ export class LimboArray<T> implements Array<T> {
 
   private updateLimboNodes(
     modelReference: string,
-    value: number | boolean | string | ((...params: unknown[]) => string | number | boolean),
+    value: number | boolean | string | ((...params: unknown[]) => string | number | boolean) | undefined | null,
   ) {
     if (this.limboNodes[modelReference]) {
       this.limboNodes[modelReference].forEach((limboNode) => {
         if (typeof value === "function") {
           limboNode.value = (value as (...params: unknown[]) => string | number | boolean)();
         } else {
-          limboNode.value = value;
+          limboNode.value = value || "";
         }
       });
     }
@@ -188,6 +209,7 @@ export class LimboArray<T> implements Array<T> {
 
             if (this.array[index] instanceof Date) {
               this.updateLimboNodes(`{{${this.alias}[${index}]}}`, (this.array[index] as Date).toISOString());
+              return;
             }
 
             if (typeof this.array[index] !== "object" && !Array.isArray(this.array[index])) {
@@ -195,6 +217,7 @@ export class LimboArray<T> implements Array<T> {
                 `{{${this.alias}[${index}]}}`,
                 this.array[index] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
               );
+              return;
             }
           },
         } as PropertyDescriptor & ThisType<LimboArray<T>>);

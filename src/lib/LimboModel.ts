@@ -4,18 +4,20 @@ import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
 export type LimboNodeParams<T> = {
-  model: Required<T>;
+  model?: T;
   alias?: string;
   LimboNodes?: { [key: string]: LimboNode[] };
 };
 
 export class _LimboModel<T> {
-  private model: Required<T> = {} as Required<T>;
+  private model: T = {} as T;
   private alias: string = "model";
   private limboNodes: { [key: string]: LimboNode[] } = {};
 
   constructor(params: LimboNodeParams<T>) {
-    this.model = params.model;
+    if (params.model) {
+      this.model = params.model;
+    }
     this.alias = params.alias || this.alias;
     this.limboNodes = params.LimboNodes || this.limboNodes;
 
@@ -25,37 +27,54 @@ export class _LimboModel<T> {
           return this.model[key];
         },
         set: function (value) {
-          if (typeof this.model[key] === "object" && !(this.model[key] instanceof Date) && !Array.isArray(this.model[key])) {
-            throw new Error(`Only Dates or primitive types are allowed to be set`);
+          if (Array.isArray(value)) {
+            if (value instanceof LimboArray) {
+              this.model[key] = value as T[Extract<keyof T, string>];
+              value.setAlias(`${this.alias}.${key}`);
+              value.setLimboNodes(this.limboNodes);
+              value.bindValues();
+            } else {
+              this.model[key] = new LimboArray(value, { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
+                keyof T,
+                string
+              >];
+            }
+            return;
           }
 
-          if (typeof value !== typeof this.model[key]) {
-            if (this.model[key] instanceof Date) {
-              throw new Error(`Value '${value}' is expected to be a Date`);
+          if (typeof value === "object") {
+            if (value instanceof _LimboModel) {
+              this.model[key] = value as T[Extract<keyof T, string>];
+              value.setAlias(`${this.alias}.${key}`);
+              value.setLimboNodes(this.limboNodes);
+              value.bindValues();
+            } else {
+              const newModel = new _LimboModel({
+                model: value,
+                alias: `${this.alias}.${key}`,
+                LimboNodes: this.limboNodes,
+              });
+
+              newModel.buildValues();
+
+              this.model[key] = newModel as T[Extract<keyof T, string>];
             }
 
-            throw new Error(`Value '${value}' is expected to be a ${typeof this.model[key]}`);
+            return;
           }
 
-          if (Array.isArray(value)) {
-            this.model[key] = new LimboArray(value, { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
-              keyof T,
-              string
-            >];
-          } else {
-            this.model[key] = value;
+          if (value instanceof Date) {
+            this.model[key] = value as T[Extract<keyof T, string>];
+            this.updateLimboNodes(`{{${this.alias}.${key}}}`, value.toString());
+            return;
           }
 
-          if (this.model[key] instanceof Date) {
-            this.updateLimboNodes(`{{${this.alias}.${key}}}`, this.model[key].toString());
-          }
+          this.model[key] = value;
 
-          if (!Array.isArray(this.model[key])) {
-            this.updateLimboNodes(
-              `{{${this.alias}.${key}}}`,
-              this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
-            );
-          }
+          this.updateLimboNodes(
+            `{{${this.alias}.${key}}}`,
+            this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
+          );
         },
       } as PropertyDescriptor & ThisType<_LimboModel<T>>);
     }
@@ -94,7 +113,7 @@ export class _LimboModel<T> {
 
     if (typeof this.model[key] === "object" && !(this.model[key] instanceof Date) && !Array.isArray(this.model[key])) {
       const model = new _LimboModel({
-        model: this.model[key] as Required<T[Extract<keyof T, string>]>,
+        model: this.model[key],
         alias: `${this.alias}.${key}`,
         LimboNodes: this.limboNodes,
       });
@@ -114,7 +133,7 @@ export class _LimboModel<T> {
     for (const key in this.model) {
       if (typeof this.model[key] === "object" && !(this.model[key] instanceof Date) && !Array.isArray(this.model[key])) {
         this.model[key] = new _LimboModel({
-          model: this.model[key] as Required<T[Extract<keyof T, string>]>,
+          model: this.model[key],
           alias: `${this.alias}.${key}`,
           LimboNodes: this.limboNodes,
         }) as T[Extract<keyof T, string>];
@@ -145,6 +164,24 @@ export class _LimboModel<T> {
     return new ModelBuilderNode(() => this.build());
   }
 
+  buildValues() {
+    let builderNode: ModelBuilderNode | null = this.getModelBuilder();
+
+    while (builderNode) {
+      builderNode.build();
+      builderNode = builderNode.next;
+    }
+  }
+
+  async bindValues() {
+    let binderNode: ModelBinderNode | null = this.getModelBinder();
+
+    while (binderNode) {
+      binderNode.bind();
+      binderNode = binderNode.next;
+    }
+  }
+
   private build(): ModelBuilderNode | null {
     let modelBuilderNode: ModelBuilderNode | null = null;
 
@@ -158,14 +195,14 @@ export class _LimboModel<T> {
 
   private updateLimboNodes(
     modelReference: string,
-    value: number | boolean | string | ((...params: unknown[]) => string | number | boolean),
+    value: number | boolean | string | ((...params: unknown[]) => string | number | boolean) | undefined | null,
   ) {
     if (this.limboNodes[modelReference]) {
       this.limboNodes[modelReference].forEach((limboNode) => {
         if (typeof value === "function") {
           limboNode.value = (value as (...params: unknown[]) => string | number | boolean)();
         } else {
-          limboNode.value = value;
+          limboNode.value = value === 0 ? value : value || "";
         }
       });
     }

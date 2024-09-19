@@ -7,12 +7,13 @@ type NestedOfNestedComponentModel = {
 };
 
 export class NestedOfNestedComponent extends LimboComponent<NestedOfNestedComponentModel> {
-  constructor(componentId: string, model: NestedOfNestedComponentModel = { value: "" }) {
-    super(componentId, model, html);
+  constructor(componentId: string, model: NestedOfNestedComponentModel) {
+    super(componentId, html, model);
   }
 
   protected override OnComponentLoaded(): void {
-    document.getElementById("nested-value-2")?.addEventListener("change", (event) => {
+    const nestedOfInput = this.componentElement?.querySelector("[name='nested-of-input']");
+    nestedOfInput?.addEventListener("change", (event) => {
       this.limboModel!.value = (event.target as HTMLInputElement).value;
     });
   }

@@ -27,6 +27,7 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
     this.modelReferenceInView = details.modelReferenceInView;
     this.rootReference = details.rootReference;
     this.modelPrefix = details.modelPrefix || this.modelPrefix;
+    this.value = "" as T;
   }
 
   public set value(value: T) {
