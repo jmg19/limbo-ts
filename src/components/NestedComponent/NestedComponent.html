@@ -1,0 +1,6 @@
+<p><input id="nested-value" type="text" placeholder="set some value" value="{{model.value}}" /></p>
+<p>Nested Property Value: {{model.value}}</p>
+<div id="NestedComponentOfNested-xpto" data-limbo-component="NestedOfNestedComponent" data-limbo-model="{{model.nestedOfNested}}"></div>
+<div data-limbo-loop="{{item of model.array}}">  
+  <div id="NestedComponentOfNested-{{#index}}" data-limbo-component="NestedOfNestedComponent" data-limbo-model="{{item}}"></div>
+</div>  
