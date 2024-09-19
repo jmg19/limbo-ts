@@ -11,7 +11,7 @@ import "./style.css";
     return;
   }
 
-  Limbo.LimboComponentsBootstrap(appElement, {
+  Limbo.Bootstrap(appElement, {
     components: { ExampleComponent, NestedComponent, NestedOfNestedComponent },
   });
 })();

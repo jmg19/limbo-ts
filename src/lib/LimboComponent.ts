@@ -1,14 +1,12 @@
-import LimboComponentsBootstrap from "./LimboBootstrap";
+import Limbo from "./Limbo";
 import { LimboModelFactory } from "./LimboFactory";
 import { LimboModel } from "./LimboModel";
-import { LimboNode } from "./LimboNode";
-import { generateLimboNodes } from "./utils";
 
 export abstract class LimboComponent<T> {
   private htmlTemplate: string = "";
   private htmlContainer: HTMLElement;
-  private limboNodes: { [key: string]: LimboNode[] } = {};
   private _limboModel: LimboModel<T> = LimboModelFactory.create({ model: {} }).model as LimboModel<T>;
+  private _limboNodesIds: number[] = [];
   protected componentElement: HTMLElement | null = null;
 
   constructor(
@@ -20,8 +18,13 @@ export abstract class LimboComponent<T> {
     this.htmlContainer = document.createElement("div");
     this.htmlTemplate = html;
     this.htmlContainer.innerHTML = this.htmlTemplate;
-    this.limboNodes = generateLimboNodes("model", html, this.htmlContainer);
-    this.renderComponent(model).then(() => this.OnComponentLoaded());
+    this.buildModel(model);
+    this.generateLimboNodes();
+    this.renderComponent().then(() => this.OnComponentLoaded());
+  }
+
+  get limboNodesIds(): number[] {
+    return this._limboNodesIds;
   }
 
   protected get limboModel(): LimboModel<T> {
@@ -33,24 +36,40 @@ export abstract class LimboComponent<T> {
   }
 
   protected setModel(model: T) {
-    this.renderComponent(model);
+    this.buildModel(model);
+    this._limboModel.bindValues();
+    this.bootstrap();
   }
 
-  private async renderComponent(model?: T) {
-    const creationResponse = LimboModelFactory.create({ model, LimboNodes: this.limboNodes });
+  private buildModel(model: T | undefined) {
+    const creationResponse = LimboModelFactory.create({ model });
     this._limboModel = creationResponse.model as LimboModel<T>;
     if (creationResponse.toBuild) {
       this._limboModel.buildValues();
     }
+  }
 
+  private generateLimboNodes() {
+    this._limboNodesIds = Limbo.generateLimboNodes("model", this.htmlTemplate, this.htmlContainer, this._limboModel.getModelReference());
+  }
+
+  private async renderComponent() {
     this._limboModel.bindValues();
 
     if (this.componentElement) {
       this.htmlContainer.childNodes.forEach((node) => this.componentElement?.appendChild(node));
-      LimboComponentsBootstrap(this.componentElement, { parentComponentModel: this._limboModel });
+      this.bootstrap();
     } else {
       console.error(`Element with id ${this.componentId} not found`);
     }
+  }
+
+  private bootstrap() {
+    if (!this.componentElement) {
+      return;
+    }
+
+    Limbo.bootstrap(this.componentElement, { parentComponentModel: this._limboModel });
   }
 
   protected abstract OnComponentLoaded(): void;
