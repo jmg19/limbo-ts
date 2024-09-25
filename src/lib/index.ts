@@ -12,14 +12,14 @@
 
 // export type { LimboModel };
 
-import LimboComponentsBootstrap from "./LimboBootstrap";
+import limboInstance, { LimboBootstrapOptions } from "./Limbo";
 import { LimboComponent } from "./LimboComponent";
 
 export { LimboComponent };
 
 const Limbo = {
   LimboComponent,
-  LimboComponentsBootstrap,
+  Bootstrap: (element: HTMLElement, options?: LimboBootstrapOptions) => limboInstance.bootstrap(element, options),
 };
 export default Limbo;
 

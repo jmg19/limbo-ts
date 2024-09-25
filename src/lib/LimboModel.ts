@@ -1,25 +1,24 @@
+import Limbo from "./Limbo";
 import { LimboArray } from "./LimboArray";
-import { LimboNode } from "./LimboNode";
+import { LimboCondition } from "./LimboCondition";
 import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
 export type LimboNodeParams<T> = {
   model?: T;
   alias?: string;
-  LimboNodes?: { [key: string]: LimboNode[] };
 };
 
 export class _LimboModel<T> {
   private model: T = {} as T;
   private alias: string = "model";
-  private limboNodes: { [key: string]: LimboNode[] } = {};
+  private limboConditions: { [key: string]: LimboCondition[] } = {};
 
   constructor(params: LimboNodeParams<T>) {
     if (params.model) {
       this.model = params.model;
     }
     this.alias = params.alias || this.alias;
-    this.limboNodes = params.LimboNodes || this.limboNodes;
 
     for (const key in this.model) {
       Object.defineProperty(this, key, {
@@ -31,13 +30,19 @@ export class _LimboModel<T> {
             if (value instanceof LimboArray) {
               this.model[key] = value as T[Extract<keyof T, string>];
               value.setAlias(`${this.alias}.${key}`);
-              value.setLimboNodes(this.limboNodes);
+              //value.setLimboNodes(this.limboNodes);
               value.bindValues();
             } else {
-              this.model[key] = new LimboArray(value, { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
-                keyof T,
-                string
-              >];
+              const limboArray = new LimboArray(value, {
+                alias: `${this.alias}.${key}`,
+                limboLoops: (this.model[key] as LimboArray<unknown>).getLimboLoops(),
+              });
+
+              limboArray.buildValues();
+              limboArray.bindValues();
+              limboArray.refreshLoops();
+
+              this.model[key] = limboArray as T[Extract<keyof T, string>];
             }
             return;
           }
@@ -46,16 +51,15 @@ export class _LimboModel<T> {
             if (value instanceof _LimboModel) {
               this.model[key] = value as T[Extract<keyof T, string>];
               value.setAlias(`${this.alias}.${key}`);
-              value.setLimboNodes(this.limboNodes);
               value.bindValues();
             } else {
               const newModel = new _LimboModel({
                 model: value,
                 alias: `${this.alias}.${key}`,
-                LimboNodes: this.limboNodes,
               });
 
               newModel.buildValues();
+              newModel.bindValues();
 
               this.model[key] = newModel as T[Extract<keyof T, string>];
             }
@@ -65,16 +69,22 @@ export class _LimboModel<T> {
 
           if (value instanceof Date) {
             this.model[key] = value as T[Extract<keyof T, string>];
-            this.updateLimboNodes(`{{${this.alias}.${key}}}`, value.toString());
+            Limbo.updateLimboNodes(`{{${this.alias}.${key}}}`, value.toString());
             return;
           }
 
           this.model[key] = value;
 
-          this.updateLimboNodes(
+          Limbo.updateLimboNodes(
             `{{${this.alias}.${key}}}`,
             this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
           );
+
+          if (typeof value === "boolean" && this.limboConditions[`${this.alias}.${key}`]) {
+            this.limboConditions[`${this.alias}.${key}`].forEach((limboCondition) => {
+              limboCondition.refresh(value);
+            });
+          }
         },
       } as PropertyDescriptor & ThisType<_LimboModel<T>>);
     }
@@ -82,7 +92,7 @@ export class _LimboModel<T> {
 
   private bindModelProperty(key: Extract<keyof T, string>): ModelBinderNode | null {
     if (this.model[key] instanceof Date) {
-      this.updateLimboNodes(`{{${this.alias}.${key}}}`, this.model[key].toString());
+      Limbo.updateLimboNodes(`{{${this.alias}.${key}}}`, this.model[key].toString());
       return null;
     }
 
@@ -94,7 +104,7 @@ export class _LimboModel<T> {
       return (this.model[key] as LimboArray<unknown>).getModelBinder();
     }
 
-    this.updateLimboNodes(
+    Limbo.updateLimboNodes(
       `{{${this.alias}.${key}}}`,
       this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
     );
@@ -115,13 +125,12 @@ export class _LimboModel<T> {
       const model = new _LimboModel({
         model: this.model[key],
         alias: `${this.alias}.${key}`,
-        LimboNodes: this.limboNodes,
       });
 
       this.model[key] = model as T[Extract<keyof T, string>];
       return model.getModelBuilder();
     } else if (Array.isArray(this.model[key])) {
-      const array = new LimboArray(this.model[key], { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes });
+      const array = new LimboArray(this.model[key], { alias: `${this.alias}.${key}` });
       this.model[key] = array as T[Extract<keyof T, string>];
       return array.getModelBuilder();
     }
@@ -135,13 +144,9 @@ export class _LimboModel<T> {
         this.model[key] = new _LimboModel({
           model: this.model[key],
           alias: `${this.alias}.${key}`,
-          LimboNodes: this.limboNodes,
         }) as T[Extract<keyof T, string>];
       } else if (typeof this.model[key] === "object" && Array.isArray(this.model[key])) {
-        this.model[key] = new LimboArray(this.model[key], { alias: `${this.alias}.${key}`, LimboNodes: this.limboNodes }) as T[Extract<
-          keyof T,
-          string
-        >];
+        this.model[key] = new LimboArray(this.model[key], { alias: `${this.alias}.${key}` }) as T[Extract<keyof T, string>];
       }
     }
   }
@@ -193,48 +198,16 @@ export class _LimboModel<T> {
     return modelBuilderNode;
   }
 
-  private updateLimboNodes(
-    modelReference: string,
-    value: number | boolean | string | ((...params: unknown[]) => string | number | boolean) | undefined | null,
-  ) {
-    if (this.limboNodes[modelReference]) {
-      this.limboNodes[modelReference].forEach((limboNode) => {
-        if (typeof value === "function") {
-          limboNode.value = (value as (...params: unknown[]) => string | number | boolean)();
-        } else {
-          limboNode.value = value === 0 ? value : value || "";
-        }
-      });
-    }
-  }
-
   setAlias(newAlias: string) {
     this.alias = newAlias;
   }
 
-  setLimboNodes(limboNodes: { [key: string]: LimboNode[] }) {
-    this.limboNodes = limboNodes;
-    for (const key in this.model) {
-      if (this.model[key] instanceof _LimboModel) {
-        (this.model[key] as _LimboModel<unknown>).setLimboNodes(limboNodes);
-      } else if (this.model[key] instanceof LimboArray) {
-        (this.model[key] as LimboArray<unknown>).setLimboNodes(limboNodes);
-      }
+  addCondition(modelReference: string, limboCondition: LimboCondition) {
+    if (!this.limboConditions[modelReference]) {
+      this.limboConditions[modelReference] = [];
     }
-  }
 
-  addChildLimboNodes(limboNodes: { [key: string]: LimboNode[] }) {
-    for (const key in limboNodes) {
-      const realKey = key.replace("model", this.alias);
-      if (!this.limboNodes[realKey]) {
-        this.limboNodes[realKey] = [];
-      }
-
-      limboNodes[key].forEach((limboNode) => {
-        limboNode.setRootReference(this.alias);
-        this.limboNodes[realKey].push(limboNode);
-      });
-    }
+    this.limboConditions[modelReference].push(limboCondition);
   }
 
   getValueByKey(key: string): unknown {
@@ -293,6 +266,22 @@ export class _LimboModel<T> {
     }
 
     return value;
+  }
+
+  toObject(): T {
+    const object: T = {} as T;
+    for (const key in this.model) {
+      if (typeof this.model[key] !== "function" && key !== "model" && key !== "alias" && key !== "limboNodes") {
+        if (this.model[key] instanceof _LimboModel) {
+          object[key] = (this.model[key] as _LimboModel<unknown>).toObject() as T[Extract<keyof T, string>];
+        } else if (this.model[key] instanceof LimboArray) {
+          object[key] = (this.model[key] as LimboArray<unknown>).toArray() as T[Extract<keyof T, string>];
+        } else {
+          object[key] = this.model[key];
+        }
+      }
+    }
+    return object;
   }
 }
 

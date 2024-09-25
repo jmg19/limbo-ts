@@ -12,10 +12,6 @@ export const LimboModelFactory = {
         data.model.setAlias(data.alias);
       }
 
-      if (data.LimboNodes) {
-        data.model.addChildLimboNodes(data.LimboNodes);
-      }
-
       return {
         model: data.model as LimboModel<T>,
         toBuild: false,
