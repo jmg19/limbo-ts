@@ -1,4 +1,4 @@
-import { LimboComponent } from "../../lib";
+import { LimboComponent, LimboComponentOptions } from "../../lib";
 import "./NestedComponent.css";
 import html from "./NestedComponent.html?raw";
 
@@ -11,8 +11,8 @@ type NestedComponentModel = {
 };
 
 export class NestedComponent extends LimboComponent<NestedComponentModel> {
-  constructor(componentId: string, model: NestedComponentModel) {
-    super(componentId, html, model);
+  constructor(componentId: string, options?: LimboComponentOptions<NestedComponentModel>) {
+    super(componentId, html, options);
   }
 
   protected override OnComponentLoaded(): void {

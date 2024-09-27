@@ -2,23 +2,34 @@ import Limbo from "./Limbo";
 import { LimboModelFactory } from "./LimboFactory";
 import { LimboModel } from "./LimboModel";
 
+export type LimboComponentOptions<T> = {
+  model?: T;
+  alias?: string;
+};
+
 export abstract class LimboComponent<T> {
   private htmlTemplate: string = "";
   private htmlContainer: HTMLElement;
-  private _limboModel: LimboModel<T> = LimboModelFactory.create({ model: {} }).model as LimboModel<T>;
+  private _limboModel: LimboModel<T>;
   private _limboNodesIds: number[] = [];
   protected componentElement: HTMLElement | null = null;
 
   constructor(
     protected componentId: string,
     html: string,
-    model?: T,
+    options: LimboComponentOptions<T> = {},
   ) {
     this.componentElement = document.getElementById(this.componentId);
     this.htmlContainer = document.createElement("div");
     this.htmlTemplate = html;
     this.htmlContainer.innerHTML = this.htmlTemplate;
-    this.buildModel(model);
+
+    const modelCreateResponse = LimboModelFactory.create(options);
+    this._limboModel = modelCreateResponse.model;
+    if (modelCreateResponse.toBuild) {
+      this._limboModel.buildValues();
+    }
+
     this.generateLimboNodes();
     this.renderComponent().then(() => this.OnComponentLoaded());
   }
@@ -35,17 +46,25 @@ export abstract class LimboComponent<T> {
     throw new Error("Cannot set limboModel. Use setModel method instead.");
   }
 
+  attachModel(limboModel: LimboModel<T>) {
+    this._limboModel = limboModel;
+  }
+
   protected setModel(model: T) {
     this.buildModel(model);
     this._limboModel.bindValues();
-    this.bootstrap();
   }
 
   private buildModel(model: T | undefined) {
-    const creationResponse = LimboModelFactory.create({ model });
+    const creationResponse = LimboModelFactory.create({
+      model,
+    });
     this._limboModel = creationResponse.model as LimboModel<T>;
     if (creationResponse.toBuild) {
       this._limboModel.buildValues();
+      Limbo.attachModelToComponents(this._limboModel);
+      Limbo.attachParentModelToConditions(this._limboModel);
+      Limbo.attachParentModelToSwitches(this._limboModel);
     }
   }
 

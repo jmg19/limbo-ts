@@ -1,5 +1,5 @@
 import Limbo from "./Limbo";
-import { LimboModel } from "./LimboModel";
+import { _LimboModel, LimboModel } from "./LimboModel";
 
 export class LimboCondition {
   private renderedConditionElement?: HTMLElement;
@@ -12,11 +12,10 @@ export class LimboCondition {
     private currentConditionValue: boolean,
     private conditionId: string,
     private parentModel: LimboModel<unknown>,
-    modelReference: string,
+    private modelReference: string,
   ) {
     this.conditionInnerHtml = this.baseConditionElement.innerHTML;
     this.baseConditionElement.innerHTML = "";
-    this.parentModel.addCondition(modelReference, this);
     this.renderCondition();
   }
 
@@ -24,14 +23,25 @@ export class LimboCondition {
     return this._limboNodesIds;
   }
 
-  async refresh(conditionValue: boolean) {
+  get parentModelReference(): string {
+    return this.parentModel.getModelReference();
+  }
+
+  attachParentModel(limboModel: _LimboModel<unknown>) {
+    this.parentModel = limboModel;
+  }
+
+  detachFromModel() {
+    Limbo.detachConditionFromModelReference(this.modelReference, this);
+  }
+
+  refresh(conditionValue: boolean) {
     this.currentConditionValue = conditionValue;
     this.renderCondition();
   }
 
   private renderCondition() {
     this.baseConditionElement.id = this.conditionId;
-    this.baseConditionElement.style.display = "";
 
     if (this.baseConditionValue !== this.currentConditionValue) {
       if (this.renderedConditionElement) {
@@ -45,6 +55,7 @@ export class LimboCondition {
     } else {
       if (!this.renderedConditionElement) {
         this.renderedConditionElement = this.baseConditionElement.cloneNode(true) as HTMLElement;
+        this.renderedConditionElement.style.display = "";
         this.renderedConditionElement.removeAttribute("data-limbo-condition");
         this.renderedConditionElement.dataset.limboConditionRendered = "true";
 
@@ -64,7 +75,5 @@ export class LimboCondition {
         Limbo.bootstrap(this.renderedConditionElement, { parentComponentModel: this.parentModel });
       }
     }
-
-    this.baseConditionElement.style.display = "none";
   }
 }
