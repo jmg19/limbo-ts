@@ -163,7 +163,7 @@ export class LimboArray<T> implements Array<T> {
       return value;
     }
 
-    if (typeof value === "object" && !(value instanceof Date)) {
+    if (typeof value === "object" && value !== null && !(value instanceof Date)) {
       if (Array.isArray(value)) {
         const limboArray = new LimboArray(value, {
           alias: `${this.alias}[${index}]`,

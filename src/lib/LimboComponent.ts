@@ -31,7 +31,10 @@ export abstract class LimboComponent<T> {
     }
 
     this.generateLimboNodes();
-    this.renderComponent().then(() => this.OnComponentLoaded());
+    this.renderComponent().then(() => {
+      this.bindEvents();
+      this.OnComponentLoaded();
+    });
   }
 
   get limboNodesIds(): number[] {
@@ -89,6 +92,77 @@ export abstract class LimboComponent<T> {
     }
 
     Limbo.bootstrap(this.componentElement, { parentComponentModel: this._limboModel });
+  }
+
+  private filterElementsToBindEvents(elements: NodeListOf<Element>, element: HTMLElement): Element[] {
+    const elementsToBindEvents: Element[] = [];
+
+    elements.forEach((switchElement) => {
+      let shouldBind = true;
+      let parentElement = switchElement.parentElement;
+      while (parentElement && parentElement !== element) {
+        if (parentElement.getAttribute("data-limbo-component")) {
+          shouldBind = false;
+          break;
+        }
+        parentElement = parentElement.parentElement;
+      }
+
+      if (shouldBind) {
+        elementsToBindEvents.push(switchElement);
+      }
+    });
+
+    return elementsToBindEvents;
+  }
+
+  parseParams(params: string[]): (number | string | boolean | unknown)[] {
+    return params.map((param) => {
+      const valueFromModelByRef = this._limboModel.getByModelReference(param);
+
+      if (valueFromModelByRef) {
+        return valueFromModelByRef;
+      }
+
+      if (param === "true") {
+        return true;
+      } else if (param === "false") {
+        return false;
+      } else if (!isNaN(Number(param))) {
+        return Number(param);
+      } else {
+        return param;
+      }
+    });
+  }
+
+  private bindEvents() {
+    if (this.componentElement) {
+      const eventElements = this.componentElement?.querySelectorAll("[data-limbo-event]");
+      const elementsToBind = this.filterElementsToBindEvents(eventElements, this.componentElement);
+
+      elementsToBind?.forEach((element) => {
+        const event = element.getAttribute("data-limbo-event") || "";
+        const eventSplit = event.split(":");
+        if (eventSplit.length < 2) {
+          throw new Error("LimboComponent: data-limbo-event requires a value in the format 'event:method:param1:...:paramN'");
+        }
+
+        const params = eventSplit.slice(2);
+
+        const eventName = eventSplit[0];
+        const methodName = eventSplit[1];
+        const functionExists = !!this[methodName as keyof this];
+        if (functionExists) {
+          element.addEventListener(eventName, (e) => {
+            const parsedParams = this.parseParams(params);
+            (this[methodName as keyof this] as (e: Event, ...params: (number | string | boolean | unknown)[]) => void)(e, ...parsedParams);
+          });
+        } else {
+          console.error(`Method ${methodName} not implemented in component ${this.componentId}`);
+        }
+      });
+    }
   }
 
   protected abstract OnComponentLoaded(): void;
