@@ -1,23 +1,19 @@
 import Limbo from "./Limbo";
-import { LimboLoop } from "./LimboLoop";
 import { _LimboModel, LimboModel } from "./LimboModel";
 import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
 type LimboArrayOptions = {
   alias?: string;
-  limboLoops?: LimboLoop[];
 };
 
 export class LimboArray<T> implements Array<T> {
   private array: T[] = [];
   private lastIndex: number = -1;
   private alias: string = "model";
-  private limboLoops: LimboLoop[];
 
   constructor(items: T[] = [], options: LimboArrayOptions = {}) {
     this.alias = options.alias || this.alias;
-    this.limboLoops = options.limboLoops || [];
     if (items.length > 0) {
       this.array.push(...items);
       this.bindIndexes();
@@ -48,12 +44,24 @@ export class LimboArray<T> implements Array<T> {
         `{{${this.alias}[${index}]}}`,
         this.array[index] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
       );
+
+      if (typeof this.array[index] === "boolean") {
+        Limbo.refreshConditions(`${this.alias}.[${index}]`, this.array[index] as boolean);
+      }
+
+      if (typeof this.array[index] === "number" || typeof this.array[index] === "string") {
+        Limbo.refreshSwitches(`${this.alias}.[${index}]`, this.array[index] as number | string);
+      }
     }
 
     return null;
   }
 
   private buildItem(index: number): ModelBuilderNode | null {
+    if (!this.array[index]) {
+      return null;
+    }
+
     if (typeof this.array[index] === "object" && !(this.array[index] instanceof Date)) {
       if (Array.isArray(this.array[index])) {
         const limboArray = new LimboArray<unknown>(this.array[index] as unknown[], {
@@ -62,11 +70,21 @@ export class LimboArray<T> implements Array<T> {
 
         this.array[index] = limboArray as T;
 
+        Limbo.pushPendingLogic(() => {
+          Limbo.attachArrayToLoops(limboArray);
+        });
+
         return limboArray.getModelBuilder();
       } else {
         const model = new _LimboModel({
           model: this.array[index],
           alias: `${this.alias}[${index}]`,
+        });
+
+        Limbo.pushPendingLogic(() => {
+          Limbo.attachModelToComponents(model);
+          Limbo.attachParentModelToConditions(model);
+          Limbo.attachParentModelToSwitches(model);
         });
 
         this.array[index] = model as T;
@@ -99,7 +117,7 @@ export class LimboArray<T> implements Array<T> {
     return modelBuilderNode;
   }
 
-  async bindValues() {
+  bindValues() {
     let binderNode: ModelBinderNode | null = this.getModelBinder();
     while (binderNode) {
       binderNode.bind();
@@ -113,35 +131,8 @@ export class LimboArray<T> implements Array<T> {
       builderNode.build();
       builderNode = builderNode.next;
     }
-  }
 
-  // addLoopLimboNodes(itemLimboNodes: { [key: string]: LimboNode[] }, index: number, itemName: string) {
-  //   for (const key in itemLimboNodes) {
-  //     const realKey = key.replace(itemName, `${this.alias}[${index}]`);
-  //     if (!this.limboNodes[realKey]) {
-  //       this.limboNodes[realKey] = [];
-  //     }
-
-  //     itemLimboNodes[key].forEach((limboNode) => {
-  //       limboNode.setRootReference(`${this.alias}[${index}]`);
-  //       this.limboNodes[realKey].push(limboNode);
-  //     });
-  //   }
-  // }
-
-  // async removeLoopLimboNodes(index: number) {
-  //   const key = `${this.alias}[${index}]`;
-  //   for (const limboNodeKey in this.limboNodes) {
-  //     if (limboNodeKey.includes(key)) {
-  //       delete this.limboNodes[limboNodeKey];
-  //     }
-  //   }
-  // }
-
-  refreshLoops() {
-    this.limboLoops.forEach((loop) => {
-      loop.refresh(this);
-    });
+    Limbo.runPendingLogic();
   }
 
   setAlias(alias: string) {
@@ -155,18 +146,6 @@ export class LimboArray<T> implements Array<T> {
 
   getArrayIndexReference(index: number): string {
     return `${this.alias}[${index}]`;
-  }
-
-  addLimboLoop(limboLoop: LimboLoop) {
-    this.limboLoops.push(limboLoop);
-  }
-
-  getLimboLoops(): LimboLoop[] | undefined {
-    return this.limboLoops;
-  }
-
-  removeLimboLoop(limboLoop: LimboLoop) {
-    this.limboLoops = this.limboLoops.filter((loop) => loop !== limboLoop);
   }
 
   private parseToLimbo<S>(value: S, index: number): S | LimboModel<S> | LimboArray<S> {
@@ -188,11 +167,10 @@ export class LimboArray<T> implements Array<T> {
       if (Array.isArray(value)) {
         const limboArray = new LimboArray(value, {
           alias: `${this.alias}[${index}]`,
-          limboLoops: this.limboLoops,
         });
 
         limboArray.buildValues();
-        limboArray.bindValues();
+        Limbo.attachArrayToLoops(limboArray);
 
         return limboArray;
       } else {
@@ -202,7 +180,9 @@ export class LimboArray<T> implements Array<T> {
         });
 
         model.buildValues();
-
+        Limbo.attachModelToComponents(model);
+        Limbo.attachParentModelToConditions(model);
+        Limbo.attachParentModelToSwitches(model);
         model.bindValues();
 
         return model as LimboModel<S>;
@@ -233,10 +213,6 @@ export class LimboArray<T> implements Array<T> {
                 this.array[index] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
               );
               return;
-            }
-
-            if (this.array[index] instanceof LimboArray) {
-              this.array[index].refreshLoops();
             }
           },
         } as PropertyDescriptor & ThisType<LimboArray<T>>);
@@ -332,7 +308,6 @@ export class LimboArray<T> implements Array<T> {
     const limboParsedItems = items.map((item, index) => this.parseToLimbo(item, this.length + index));
     const result = this.array.push(...(limboParsedItems as T[]));
     this.bindIndexes();
-    this.refreshLoops();
     return result;
   }
 
@@ -341,7 +316,6 @@ export class LimboArray<T> implements Array<T> {
     const limboParsedItems = items.map((item, index) => this.parseToLimbo(item, this.length + index));
     this.array = this.array.concat(...(limboParsedItems as T[]));
     this.bindIndexes();
-    this.refreshLoops();
     return this;
   }
 
@@ -381,7 +355,6 @@ export class LimboArray<T> implements Array<T> {
     const limboParsedItems = items.map((item, index) => this.parseToLimbo(item, start + index));
     this.array.splice(start as number, deleteCount as number, ...(limboParsedItems as T[]));
     this.bindIndexes();
-    this.refreshLoops();
     return this;
   }
 
@@ -390,7 +363,6 @@ export class LimboArray<T> implements Array<T> {
     this.redefineAlias(limboParsedItems.length);
     const result = this.array.unshift(...(limboParsedItems as T[]));
     this.bindIndexes();
-    this.refreshLoops();
     return result;
   }
 
@@ -461,7 +433,6 @@ export class LimboArray<T> implements Array<T> {
     this.array.fill(limboValue as T, start, end);
     this.redefineAlias();
     this.bindIndexes();
-    this.refreshLoops();
     return this;
   }
 

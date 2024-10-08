@@ -16,7 +16,7 @@ export class LimboLoop {
     this.loopHtml = this.baseLoopElement.outerHTML;
     this.baseLoopElement.id = this.loopId;
     this.baseLoopElement.innerHTML = "";
-    this.array.addLimboLoop(this);
+    Limbo.attachLoopToArrayReference(this.array.getArrayReference(), this);
     this.renderLoop();
   }
 
@@ -24,31 +24,32 @@ export class LimboLoop {
     return this._limboNodesIds;
   }
 
-  detachFromModel() {
-    this.array.removeLimboLoop(this);
+  attachArray(limboArray: LimboArray<unknown>) {
+    const currentArrayLastIndex = this.array.length - 1;
+    const newArrayLastIndex = limboArray.length - 1;
+    this.array = limboArray;
+    this.refresh(currentArrayLastIndex, newArrayLastIndex);
   }
 
-  async refresh(array: LimboArray<unknown>) {
-    const currentArrayLastIndex = this.array.length - 1;
-    const newArrayLastIndex = array.length - 1;
-    this.array = array;
+  detachFromModel() {
+    Limbo.detachLoopFromArrayReference(this.array.getArrayReference(), this);
+  }
 
+  private refresh(currentArrayLastIndex: number, newArrayLastIndex: number) {
     if (currentArrayLastIndex < newArrayLastIndex) {
-      this.baseLoopElement.style.display = "";
-
       for (let i = currentArrayLastIndex + 1; i <= newArrayLastIndex; i++) {
         this.renderLoopElement(i);
       }
-
-      this.baseLoopElement.style.display = "none";
 
       this.array.bindValues();
 
       for (let i = currentArrayLastIndex + 1; i <= newArrayLastIndex; i++) {
         const item = this.array[i];
+        const loopElement = this.loopElements[`${this.itemName}-${i}`];
         if (item instanceof _LimboModel) {
-          const loopElement = this.loopElements[`${this.itemName}-${i}`];
           Limbo.bootstrap(loopElement, { loopItemModel: item });
+        } else {
+          Limbo.bootstrap(loopElement);
         }
       }
     } else if (currentArrayLastIndex > newArrayLastIndex) {
@@ -66,19 +67,19 @@ export class LimboLoop {
     }
   }
 
-  private async renderLoop() {
+  private renderLoop() {
     this.array.forEach((_, index) => {
       this.renderLoopElement(index);
     });
 
-    this.baseLoopElement.style.display = "none";
-
     this.array.bindValues();
 
     this.array.forEach((item, index) => {
+      const loopElement = this.loopElements[`${this.itemName}-${index}`];
       if (item instanceof _LimboModel) {
-        const loopElement = this.loopElements[`${this.itemName}-${index}`];
         Limbo.bootstrap(loopElement, { loopItemModel: item });
+      } else {
+        Limbo.bootstrap(loopElement);
       }
     });
   }

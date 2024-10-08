@@ -1,6 +1,5 @@
 import Limbo from "./Limbo";
 import { LimboArray } from "./LimboArray";
-import { LimboCondition } from "./LimboCondition";
 import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
@@ -12,7 +11,6 @@ export type LimboNodeParams<T> = {
 export class _LimboModel<T> {
   private model: T = {} as T;
   private alias: string = "model";
-  private limboConditions: { [key: string]: LimboCondition[] } = {};
 
   constructor(params: LimboNodeParams<T>) {
     if (params.model) {
@@ -30,17 +28,14 @@ export class _LimboModel<T> {
             if (value instanceof LimboArray) {
               this.model[key] = value as T[Extract<keyof T, string>];
               value.setAlias(`${this.alias}.${key}`);
-              //value.setLimboNodes(this.limboNodes);
               value.bindValues();
             } else {
               const limboArray = new LimboArray(value, {
                 alias: `${this.alias}.${key}`,
-                limboLoops: (this.model[key] as LimboArray<unknown>).getLimboLoops(),
               });
 
               limboArray.buildValues();
-              limboArray.bindValues();
-              limboArray.refreshLoops();
+              Limbo.attachArrayToLoops(limboArray);
 
               this.model[key] = limboArray as T[Extract<keyof T, string>];
             }
@@ -59,6 +54,9 @@ export class _LimboModel<T> {
               });
 
               newModel.buildValues();
+              Limbo.attachModelToComponents(newModel);
+              Limbo.attachParentModelToConditions(newModel);
+              Limbo.attachParentModelToSwitches(newModel);
               newModel.bindValues();
 
               this.model[key] = newModel as T[Extract<keyof T, string>];
@@ -80,11 +78,8 @@ export class _LimboModel<T> {
             this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
           );
 
-          if (typeof value === "boolean" && this.limboConditions[`${this.alias}.${key}`]) {
-            this.limboConditions[`${this.alias}.${key}`].forEach((limboCondition) => {
-              limboCondition.refresh(value);
-            });
-          }
+          Limbo.refreshConditions(`${this.alias}.${key}`, value);
+          Limbo.refreshSwitches(`${this.alias}.${key}`, value);
         },
       } as PropertyDescriptor & ThisType<_LimboModel<T>>);
     }
@@ -109,10 +104,22 @@ export class _LimboModel<T> {
       this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
     );
 
+    if (typeof this.model[key] === "boolean") {
+      Limbo.refreshConditions(`${this.alias}.${key}`, this.model[key] as boolean);
+    }
+
+    if (typeof this.model[key] === "number" || typeof this.model[key] === "string") {
+      Limbo.refreshSwitches(`${this.alias}.${key}`, this.model[key] as number | string);
+    }
+
     return null;
   }
 
   private buildModelProperty(key: Extract<keyof T, string>): ModelBuilderNode | null {
+    if (!this.model[key]) {
+      return null;
+    }
+
     if (this.model[key] instanceof _LimboModel) {
       return null;
     }
@@ -127,10 +134,21 @@ export class _LimboModel<T> {
         alias: `${this.alias}.${key}`,
       });
 
+      Limbo.pushPendingLogic(() => {
+        Limbo.attachModelToComponents(model);
+        Limbo.attachParentModelToConditions(model);
+        Limbo.attachParentModelToSwitches(model);
+      });
+
       this.model[key] = model as T[Extract<keyof T, string>];
       return model.getModelBuilder();
     } else if (Array.isArray(this.model[key])) {
       const array = new LimboArray(this.model[key], { alias: `${this.alias}.${key}` });
+
+      Limbo.pushPendingLogic(() => {
+        Limbo.attachArrayToLoops(array);
+      });
+
       this.model[key] = array as T[Extract<keyof T, string>];
       return array.getModelBuilder();
     }
@@ -176,9 +194,11 @@ export class _LimboModel<T> {
       builderNode.build();
       builderNode = builderNode.next;
     }
+
+    Limbo.runPendingLogic();
   }
 
-  async bindValues() {
+  bindValues() {
     let binderNode: ModelBinderNode | null = this.getModelBinder();
 
     while (binderNode) {
@@ -200,14 +220,6 @@ export class _LimboModel<T> {
 
   setAlias(newAlias: string) {
     this.alias = newAlias;
-  }
-
-  addCondition(modelReference: string, limboCondition: LimboCondition) {
-    if (!this.limboConditions[modelReference]) {
-      this.limboConditions[modelReference] = [];
-    }
-
-    this.limboConditions[modelReference].push(limboCondition);
   }
 
   getValueByKey(key: string): unknown {
