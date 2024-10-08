@@ -3,6 +3,7 @@ import "./NestedComponent.css";
 import html from "./NestedComponent.html?raw";
 
 type NestedComponentModel = {
+  someId: string;
   value: string;
   nestedOfNested: {
     value: string;
@@ -16,8 +17,19 @@ export class NestedComponent extends LimboComponent<NestedComponentModel> {
   }
 
   protected override OnComponentLoaded(): void {
-    document.getElementById("nested-value")?.addEventListener("change", (event) => {
-      this.limboModel!.value = (event.target as HTMLInputElement).value;
+    this.setModel({
+      someId: "bla bla bla bla",
+      value: "",
+      nestedOfNested: {
+        value: "",
+      },
+      array: [],
     });
+  }
+
+  onChange(event: Event, abc: boolean) {
+    const target = event.target as HTMLInputElement;
+    this.limboModel.value = target.value;
+    console.log(abc);
   }
 }

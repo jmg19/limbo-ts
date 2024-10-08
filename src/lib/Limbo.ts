@@ -203,16 +203,18 @@ class Limbo {
         let model = undefined;
         let modelFullReference = documentToRender.getAttribute("data-limbo-model") as string;
 
-        if (options.parentComponentModel) {
-          model = options.parentComponentModel.getByModelReference(modelFullReference);
+        if (modelFullReference) {
+          if (options.parentComponentModel) {
+            model = options.parentComponentModel.getByModelReference(modelFullReference);
 
-          modelFullReference = modelFullReference.replace("{{", "").replace("}}", "");
-          modelFullReference = modelFullReference.replace(`${modelPrefix}`, options.parentComponentModel.getModelReference());
-        }
+            modelFullReference = modelFullReference.replace("{{", "").replace("}}", "");
+            modelFullReference = modelFullReference.replace(`${modelPrefix}`, options.parentComponentModel.getModelReference());
+          }
 
-        if (options.loopItemModel) {
-          model = options.loopItemModel;
-          modelFullReference = options.loopItemModel.getModelReference();
+          if (options.loopItemModel) {
+            model = options.loopItemModel.getByModelReference(modelFullReference);
+            modelFullReference = options.loopItemModel.getModelReference();
+          }
         }
 
         const component = new this.aplicationComponents[componentName](componentId, {
@@ -354,12 +356,12 @@ class Limbo {
 
   generateLimboNodes(modelName: string, html: string, htmlContainer: HTMLElement, rootReference: string, modelPrefix?: string): number[] {
     const limboNodesIds: number[] = [];
-    const regex = new RegExp(`([a-zA-z-]+)="[^"]*(({{${modelName}\\..+}})|({{${modelName}}}))[^"]*"`, "g");
+    const regex = new RegExp(`([a-zA-z-]+)=("[^"]*({{model\\.[^"]+}})[^"]*")|(("({{model}}))[^"]*")`, "g");
     const regexIt = html.matchAll(regex);
 
     for (const match of regexIt) {
       const attributeName = match[1];
-      const modelReference = match[2];
+      const modelReference = match[3];
       const limboKey = modelReference.replace(modelPrefix || "model", rootReference);
 
       const selectorString = `[${attributeName}*="${modelReference}"]`;
@@ -436,7 +438,8 @@ class Limbo {
       attributeName !== "data-limbo-switch" &&
       attributeName !== "data-limbo-switch-case" &&
       attributeName !== "data-limbo-switch-default" &&
-      attributeName !== "data-limbo-switch-rendered"
+      attributeName !== "data-limbo-switch-rendered" &&
+      attributeName !== "data-limbo-event"
     );
   }
 

@@ -24,6 +24,7 @@
     <button
       id="counter"
       type="button"
+      data-limbo-event="click:counterClick"
     >
       Count is {{model.counter}}
     </button>
@@ -31,14 +32,9 @@
   <p class="read-the-docs">Click on the Vite and TypeScript logos to learn more</p>
   <p>This is the count value: {{model.counter}}</p>
 
-
-  <div>
-    <button type="button" id="btn-show-aaa">Show aaa</button>
-    <button type="button" id="btn-show-bbb">Show bbb</button>
-    <button type="button" id="btn-show-default">Show default</button>
-  </div>
+  <div id="NestedComponent1" data-limbo-component="NestedComponent"></div>
   
-  <div data-limbo-switch="{{model.xpto}}">
+  <!-- <div data-limbo-switch="{{model.xpto}}">
     <div data-limbo-switch-case="aaa">
       <div id="NestedComponent-aaa" data-limbo-component="NestedComponent" data-limbo-model="{{model.nested}}"></div>  
     </div>
@@ -48,5 +44,5 @@
     <div data-limbo-switch-default >
       <div id="NestedComponent-default" data-limbo-component="NestedComponent" data-limbo-model="{{model.nested}}"></div>  
     </div>
-  </div>
+  </div> -->
 </div>
