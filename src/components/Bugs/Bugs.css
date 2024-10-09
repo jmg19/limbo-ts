@@ -1,0 +1,13 @@
+.bugs-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+}
+
+.bugs-content > div, .bugs-content > div {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+}

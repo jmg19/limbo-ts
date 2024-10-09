@@ -1,0 +1,36 @@
+<h1>Welcome to Limbo Bugs</h1>
+<p>Simple Hello World with counter</p>
+<div>
+  <a
+    href="https://vitejs.dev"
+    target="_blank"
+  >
+    <img
+      data-limbo-src="{{model.viteLogo}}"
+      class="logo"
+      alt="Vite logo"
+    />
+  </a>
+  <a
+    href="https://www.typescriptlang.org/"
+    target="_blank"
+  >
+    <img
+      data-limbo-src="{{model.typescriptLogo}}"
+      class="logo vanilla"
+      alt="TypeScript logo"
+    />
+  </a>
+  <h1>Vite + TypeScript + Limbo</h1>
+  <div class="card">
+    <button
+      id="counter"
+      type="button"
+      data-limbo-event="click:counterClick"
+    >
+      Count is {{model.counter}}
+    </button>
+  </div>
+  <p class="read-the-docs">Click on the Vite and TypeScript logos to learn more</p>
+  <p>This is the count value: {{model.counter}}</p>
+</div>

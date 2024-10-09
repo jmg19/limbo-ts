@@ -1,0 +1,17 @@
+<h1>This page 1</h1>
+<p>This will handle page 1 stuffs</p>
+<div>
+  <div class="card">
+    <button
+      id="show-value"
+      type="button"
+      data-limbo-event="click:showValue"
+    >
+     Show value
+    </button>
+  </div>
+  <div data-limbo-condition="{{model.value is not 'xpto'}}">
+    <p>Hello Limbo Condition</p>  
+    <p>Only appears when value is {{model.value}}</p> 
+  </div>
+</div>

@@ -5,18 +5,18 @@ import { ModelBuilderNode } from "./ModelBuilderNode";
 
 export type LimboNodeParams<T> = {
   model?: T;
-  alias?: string;
+  modelReference?: string;
 };
 
 export class _LimboModel<T> {
   private model: T = {} as T;
-  private alias: string = "model";
+  private modelReference: string = "model";
 
   constructor(params: LimboNodeParams<T>) {
     if (params.model) {
       this.model = params.model;
     }
-    this.alias = params.alias || this.alias;
+    this.modelReference = params.modelReference || this.modelReference;
 
     for (const key in this.model) {
       Object.defineProperty(this, key, {
@@ -27,11 +27,11 @@ export class _LimboModel<T> {
           if (Array.isArray(value)) {
             if (value instanceof LimboArray) {
               this.model[key] = value as T[Extract<keyof T, string>];
-              value.setAlias(`${this.alias}.${key}`);
+              value.setModelReference(`${this.modelReference}.${key}`);
               value.bindValues();
             } else {
               const limboArray = new LimboArray(value, {
-                alias: `${this.alias}.${key}`,
+                modelReference: `${this.modelReference}.${key}`,
               });
 
               limboArray.buildValues();
@@ -45,12 +45,12 @@ export class _LimboModel<T> {
           if (typeof value === "object" && value !== null) {
             if (value instanceof _LimboModel) {
               this.model[key] = value as T[Extract<keyof T, string>];
-              value.setAlias(`${this.alias}.${key}`);
+              value.setModelReference(`${this.modelReference}.${key}`);
               value.bindValues();
             } else {
               const newModel = new _LimboModel({
                 model: value,
-                alias: `${this.alias}.${key}`,
+                modelReference: `${this.modelReference}.${key}`,
               });
 
               newModel.buildValues();
@@ -67,19 +67,19 @@ export class _LimboModel<T> {
 
           if (value instanceof Date) {
             this.model[key] = value as T[Extract<keyof T, string>];
-            Limbo.updateLimboNodes(`{{${this.alias}.${key}}}`, value.toString());
+            Limbo.updateLimboNodes(`{{${this.modelReference}.${key}}}`, value.toString());
             return;
           }
 
           this.model[key] = value;
 
           Limbo.updateLimboNodes(
-            `{{${this.alias}.${key}}}`,
+            `{{${this.modelReference}.${key}}}`,
             this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
           );
 
-          Limbo.refreshConditions(`${this.alias}.${key}`, value);
-          Limbo.refreshSwitches(`${this.alias}.${key}`, value);
+          Limbo.refreshConditions(`${this.modelReference}.${key}`, value);
+          Limbo.refreshSwitches(`${this.modelReference}.${key}`, value);
         },
       } as PropertyDescriptor & ThisType<_LimboModel<T>>);
     }
@@ -87,7 +87,7 @@ export class _LimboModel<T> {
 
   private bindModelProperty(key: Extract<keyof T, string>): ModelBinderNode | null {
     if (this.model[key] instanceof Date) {
-      Limbo.updateLimboNodes(`{{${this.alias}.${key}}}`, this.model[key].toString());
+      Limbo.updateLimboNodes(`{{${this.modelReference}.${key}}}`, this.model[key].toString());
       return null;
     }
 
@@ -100,16 +100,16 @@ export class _LimboModel<T> {
     }
 
     Limbo.updateLimboNodes(
-      `{{${this.alias}.${key}}}`,
+      `{{${this.modelReference}.${key}}}`,
       this.model[key] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
     );
 
     if (typeof this.model[key] === "boolean") {
-      Limbo.refreshConditions(`${this.alias}.${key}`, this.model[key] as boolean);
+      Limbo.refreshConditions(`${this.modelReference}.${key}`, this.model[key] as boolean);
     }
 
     if (typeof this.model[key] === "number" || typeof this.model[key] === "string") {
-      Limbo.refreshSwitches(`${this.alias}.${key}`, this.model[key] as number | string);
+      Limbo.refreshSwitches(`${this.modelReference}.${key}`, this.model[key] as number | string);
     }
 
     return null;
@@ -131,7 +131,7 @@ export class _LimboModel<T> {
     if (typeof this.model[key] === "object" && !(this.model[key] instanceof Date) && !Array.isArray(this.model[key])) {
       const model = new _LimboModel({
         model: this.model[key],
-        alias: `${this.alias}.${key}`,
+        modelReference: `${this.modelReference}.${key}`,
       });
 
       Limbo.pushPendingLogic(() => {
@@ -143,7 +143,7 @@ export class _LimboModel<T> {
       this.model[key] = model as T[Extract<keyof T, string>];
       return model.getModelBuilder();
     } else if (Array.isArray(this.model[key])) {
-      const array = new LimboArray(this.model[key], { alias: `${this.alias}.${key}` });
+      const array = new LimboArray(this.model[key], { modelReference: `${this.modelReference}.${key}` });
 
       Limbo.pushPendingLogic(() => {
         Limbo.attachArrayToLoops(array);
@@ -205,8 +205,8 @@ export class _LimboModel<T> {
     return modelBuilderNode;
   }
 
-  setAlias(newAlias: string) {
-    this.alias = newAlias;
+  setModelReference(newModelReference: string) {
+    this.modelReference = newModelReference;
   }
 
   getValueByKey(key: string): unknown {
@@ -214,7 +214,7 @@ export class _LimboModel<T> {
   }
 
   getModelReference(): string {
-    return this.alias;
+    return this.modelReference;
   }
 
   getByModelReference(modelReference: string): unknown {
@@ -222,7 +222,7 @@ export class _LimboModel<T> {
     const references = modelReference.split(".");
 
     if (references.length === 1) {
-      if (this.alias.startsWith(references[0])) {
+      if (this.modelReference.startsWith(references[0])) {
         return this;
       } else {
         return null;
@@ -279,7 +279,7 @@ export class _LimboModel<T> {
   toObject(): T {
     const object: T = {} as T;
     for (const key in this.model) {
-      if (typeof this.model[key] !== "function" && key !== "model" && key !== "alias") {
+      if (typeof this.model[key] !== "function" && key !== "model" && key !== "modelReference") {
         if (this.model[key] instanceof _LimboModel) {
           object[key] = (this.model[key] as _LimboModel<unknown>).toObject() as T[Extract<keyof T, string>];
         } else if (this.model[key] instanceof LimboArray) {

@@ -32,17 +32,24 @@
   <p class="read-the-docs">Click on the Vite and TypeScript logos to learn more</p>
   <p>This is the count value: {{model.counter}}</p>
 
-  <div id="NestedComponent1" data-limbo-component="NestedComponent"></div>
+  <select title="xpto-select" data-limbo-event="change:xptoSelectChange">
+    <option value="aaa">aaa</option>
+    <option value="bbb">bbb</option>
+    <option value="ccc">ccc</option>
+  </select>
   
-  <!-- <div data-limbo-switch="{{model.xpto}}">
+  <div data-limbo-switch="{{model.xpto}}">
     <div data-limbo-switch-case="aaa">
+      <h4>Switch Case: {{model.xpto}}</h4>
       <div id="NestedComponent-aaa" data-limbo-component="NestedComponent" data-limbo-model="{{model.nested}}"></div>  
     </div>
     <div data-limbo-switch-case="bbb" >
+      <h4>Switch Case: {{model.xpto}}</h4>
       <div id="NestedComponent-bbb" data-limbo-component="NestedComponent" data-limbo-model="{{model.nested}}"></div>  
     </div>
     <div data-limbo-switch-default >
+      <h4>Default Switch Case</h4>
       <div id="NestedComponent-default" data-limbo-component="NestedComponent" data-limbo-model="{{model.nested}}"></div>  
     </div>
-  </div> -->
+  </div>
 </div>

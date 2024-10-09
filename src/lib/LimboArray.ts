@@ -4,30 +4,30 @@ import { ModelBinderNode } from "./ModelBinderNode";
 import { ModelBuilderNode } from "./ModelBuilderNode";
 
 type LimboArrayOptions = {
-  alias?: string;
+  modelReference?: string;
 };
 
 export class LimboArray<T> implements Array<T> {
   private array: T[] = [];
   private lastIndex: number = -1;
-  private alias: string = "model";
+  private modelReference: string = "model";
 
   constructor(items: T[] = [], options: LimboArrayOptions = {}) {
-    this.alias = options.alias || this.alias;
+    this.modelReference = options.modelReference || this.modelReference;
     if (items.length > 0) {
       this.array.push(...items);
       this.bindIndexes();
     }
   }
 
-  private redefineAlias(startIndex: number = 0) {
+  private redefineModelReference(startIndex: number = 0) {
     this.array.forEach((item, index) => {
       if (item instanceof _LimboModel) {
-        (item as _LimboModel<T>).setAlias(`${this.alias}[${startIndex + index}]`);
+        (item as _LimboModel<T>).setModelReference(`${this.modelReference}[${startIndex + index}]`);
       }
 
       if (item instanceof LimboArray) {
-        (item as LimboArray<unknown>).setAlias(`${this.alias}[${startIndex + index}]`);
+        (item as LimboArray<unknown>).setModelReference(`${this.modelReference}[${startIndex + index}]`);
       }
     });
   }
@@ -38,19 +38,19 @@ export class LimboArray<T> implements Array<T> {
     } else if (this.array[index] instanceof LimboArray) {
       return (this.array[index] as LimboArray<unknown>).getModelBinder();
     } else if (this.array[index] instanceof Date) {
-      Limbo.updateLimboNodes(`{{${this.alias}[${index}]}}`, (this.array[index] as Date).toISOString());
+      Limbo.updateLimboNodes(`{{${this.modelReference}[${index}]}}`, (this.array[index] as Date).toISOString());
     } else {
       Limbo.updateLimboNodes(
-        `{{${this.alias}[${index}]}}`,
+        `{{${this.modelReference}[${index}]}}`,
         this.array[index] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
       );
 
       if (typeof this.array[index] === "boolean") {
-        Limbo.refreshConditions(`${this.alias}.[${index}]`, this.array[index] as boolean);
+        Limbo.refreshConditions(`${this.modelReference}.[${index}]`, this.array[index] as boolean);
       }
 
       if (typeof this.array[index] === "number" || typeof this.array[index] === "string") {
-        Limbo.refreshSwitches(`${this.alias}.[${index}]`, this.array[index] as number | string);
+        Limbo.refreshSwitches(`${this.modelReference}.[${index}]`, this.array[index] as number | string);
       }
     }
 
@@ -65,7 +65,7 @@ export class LimboArray<T> implements Array<T> {
     if (typeof this.array[index] === "object" && !(this.array[index] instanceof Date)) {
       if (Array.isArray(this.array[index])) {
         const limboArray = new LimboArray<unknown>(this.array[index] as unknown[], {
-          alias: `${this.alias}[${index}]`,
+          modelReference: `${this.modelReference}[${index}]`,
         });
 
         this.array[index] = limboArray as T;
@@ -78,7 +78,7 @@ export class LimboArray<T> implements Array<T> {
       } else {
         const model = new _LimboModel({
           model: this.array[index],
-          alias: `${this.alias}[${index}]`,
+          modelReference: `${this.modelReference}[${index}]`,
         });
 
         Limbo.pushPendingLogic(() => {
@@ -135,29 +135,29 @@ export class LimboArray<T> implements Array<T> {
     Limbo.runPendingLogic();
   }
 
-  setAlias(alias: string) {
-    this.alias = alias;
-    this.redefineAlias();
+  setModelReference(newModelReference: string) {
+    this.modelReference = newModelReference;
+    this.redefineModelReference();
   }
 
   getArrayReference(): string {
-    return this.alias;
+    return this.modelReference;
   }
 
   getArrayIndexReference(index: number): string {
-    return `${this.alias}[${index}]`;
+    return `${this.modelReference}[${index}]`;
   }
 
   private parseToLimbo<S>(value: S, index: number): S | LimboModel<S> | LimboArray<S> {
     if (value instanceof _LimboModel) {
-      (value as _LimboModel<S>).setAlias(`${this.alias}[${index}]`);
+      (value as _LimboModel<S>).setModelReference(`${this.modelReference}[${index}]`);
       (value as _LimboModel<S>).bindValues();
 
       return value;
     }
 
     if (value instanceof LimboArray) {
-      (value as LimboArray<S>).setAlias(`${this.alias}[${index}]`);
+      (value as LimboArray<S>).setModelReference(`${this.modelReference}[${index}]`);
       (value as LimboArray<S>).bindValues();
 
       return value;
@@ -166,7 +166,7 @@ export class LimboArray<T> implements Array<T> {
     if (typeof value === "object" && value !== null && !(value instanceof Date)) {
       if (Array.isArray(value)) {
         const limboArray = new LimboArray(value, {
-          alias: `${this.alias}[${index}]`,
+          modelReference: `${this.modelReference}[${index}]`,
         });
 
         limboArray.buildValues();
@@ -176,7 +176,7 @@ export class LimboArray<T> implements Array<T> {
       } else {
         const model = new _LimboModel<S>({
           model: value,
-          alias: `${this.alias}[${index}]`,
+          modelReference: `${this.modelReference}[${index}]`,
         });
 
         model.buildValues();
@@ -203,13 +203,13 @@ export class LimboArray<T> implements Array<T> {
             this.array[index] = this.parseToLimbo(value, index);
 
             if (this.array[index] instanceof Date) {
-              Limbo.updateLimboNodes(`{{${this.alias}[${index}]}}`, (this.array[index] as Date).toISOString());
+              Limbo.updateLimboNodes(`{{${this.modelReference}[${index}]}}`, (this.array[index] as Date).toISOString());
               return;
             }
 
             if (typeof this.array[index] !== "object" && !Array.isArray(this.array[index])) {
               Limbo.updateLimboNodes(
-                `{{${this.alias}[${index}]}}`,
+                `{{${this.modelReference}[${index}]}}`,
                 this.array[index] as number | boolean | string | ((...params: unknown[]) => string | number | boolean),
               );
               return;
@@ -325,27 +325,27 @@ export class LimboArray<T> implements Array<T> {
 
   reverse(): T[] {
     this.array.reverse();
-    this.redefineAlias();
+    this.redefineModelReference();
 
     return this;
   }
 
   shift(): T | undefined {
     const result = this.array.shift();
-    this.redefineAlias();
+    this.redefineModelReference();
     return result;
   }
 
   slice(start?: number, end?: number): T[] {
     const slice = this.array.slice(start, end);
-    const slicedLimboArray = new LimboArray<T>([], { alias: this.alias });
+    const slicedLimboArray = new LimboArray<T>([], { modelReference: this.modelReference });
     slicedLimboArray.setLimboArray(slice);
     return slicedLimboArray;
   }
 
   sort(compareFn?: ((a: T, b: T) => number) | undefined): this {
     this.array.sort(compareFn);
-    this.redefineAlias();
+    this.redefineModelReference();
     return this;
   }
 
@@ -360,7 +360,7 @@ export class LimboArray<T> implements Array<T> {
 
   unshift(...items: T[]): number {
     const limboParsedItems = items.map((item, index) => this.parseToLimbo(item, index));
-    this.redefineAlias(limboParsedItems.length);
+    this.redefineModelReference(limboParsedItems.length);
     const result = this.array.unshift(...(limboParsedItems as T[]));
     this.bindIndexes();
     return result;
@@ -431,14 +431,14 @@ export class LimboArray<T> implements Array<T> {
   fill(value: T, start?: number, end?: number): this {
     const limboValue = this.parseToLimbo(value, 0);
     this.array.fill(limboValue as T, start, end);
-    this.redefineAlias();
+    this.redefineModelReference();
     this.bindIndexes();
     return this;
   }
 
   copyWithin(target: number, start: number, end?: number): this {
     this.array.copyWithin(target, start, end);
-    this.redefineAlias();
+    this.redefineModelReference();
     return this;
   }
 

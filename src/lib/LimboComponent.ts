@@ -1,23 +1,30 @@
-import Limbo from "./Limbo";
+import Limbo, { LimboMountableElement } from "./Limbo";
 import { LimboModelFactory } from "./LimboFactory";
 import { LimboModel } from "./LimboModel";
 
-export type LimboComponentOptions<T> = {
+export type LimboComponentOptions<T, RoutingParams = void> = {
   model?: T;
-  alias?: string;
+  modelReference?: string;
+  routingParams?: RoutingParams;
 };
 
-export abstract class LimboComponent<T> {
+export abstract class LimboComponent<T, RoutingParams = void> implements LimboMountableElement {
+  setLimboModelData(data: T) {
+    this.setModelData(data);
+  }
+
   private htmlTemplate: string = "";
   private htmlContainer: HTMLElement;
   private _limboModel: LimboModel<T>;
   private _limboNodesIds: number[] = [];
   protected componentElement: HTMLElement | null = null;
+  private mountedChilds: LimboMountableElement[] = [];
+  private bindedEvents: { element: Element; eventName: string; navigate: boolean; event: EventListener }[] = [];
 
   constructor(
     protected componentId: string,
     html: string,
-    options: LimboComponentOptions<T> = {},
+    options: LimboComponentOptions<T, RoutingParams> = {},
   ) {
     this.componentElement = document.getElementById(this.componentId);
     this.htmlContainer = document.createElement("div");
@@ -29,11 +36,44 @@ export abstract class LimboComponent<T> {
     if (modelCreateResponse.toBuild) {
       this._limboModel.buildValues();
     }
+  }
 
+  unmount(): void {
+    this.onUnmount();
+    this.unmountChilds();
+    if (this.componentElement) {
+      this.componentElement.remove();
+    }
+
+    Limbo.clearLimboNodes(this._limboNodesIds);
+    Limbo.detachComponentFromModelReference(this._limboModel.getModelReference(), this);
+    Limbo.removeRenderedComponent(this.componentId);
+
+    this.bindedEvents.forEach((bindedEvent) => {
+      bindedEvent.element.removeEventListener(bindedEvent.eventName, bindedEvent.event);
+    });
+  }
+
+  private mountChilds(): void {
+    if (!this.componentElement) {
+      return;
+    }
+
+    this.mountedChilds = Limbo.bootstrap(this.componentElement, { parentComponentModel: this._limboModel, parentComponent: this });
+  }
+
+  private unmountChilds(): void {
+    while (this.mountedChilds.length > 0) {
+      this.mountedChilds.pop()?.unmount();
+    }
+  }
+
+  mount() {
     this.generateLimboNodes();
     this.renderComponent().then(() => {
       this.bindEvents();
-      this.OnComponentLoaded();
+      this.bindLimboRoutingLinks();
+      this.onMount();
     });
   }
 
@@ -53,7 +93,7 @@ export abstract class LimboComponent<T> {
     this._limboModel = limboModel;
   }
 
-  protected setModel(model: T) {
+  public setModelData(model: T) {
     this.buildModel(model);
     this._limboModel.bindValues();
   }
@@ -61,11 +101,11 @@ export abstract class LimboComponent<T> {
   private buildModel(model: T | undefined) {
     const creationResponse = LimboModelFactory.create({
       model,
+      modelReference: this._limboModel.getModelReference(),
     });
     this._limboModel = creationResponse.model as LimboModel<T>;
     if (creationResponse.toBuild) {
       this._limboModel.buildValues();
-      Limbo.attachModelToComponents(this._limboModel);
       Limbo.attachParentModelToConditions(this._limboModel);
       Limbo.attachParentModelToSwitches(this._limboModel);
     }
@@ -80,18 +120,10 @@ export abstract class LimboComponent<T> {
 
     if (this.componentElement) {
       this.htmlContainer.childNodes.forEach((node) => this.componentElement?.appendChild(node));
-      this.bootstrap();
+      this.mountChilds();
     } else {
       console.error(`Element with id ${this.componentId} not found`);
     }
-  }
-
-  private bootstrap() {
-    if (!this.componentElement) {
-      return;
-    }
-
-    Limbo.bootstrap(this.componentElement, { parentComponentModel: this._limboModel });
   }
 
   private filterElementsToBindEvents(elements: NodeListOf<Element>, element: HTMLElement): Element[] {
@@ -136,34 +168,88 @@ export abstract class LimboComponent<T> {
     });
   }
 
-  private bindEvents() {
+  getLimboModelData(): T {
+    return this._limboModel.toObject();
+  }
+
+  bindEvents() {
     if (this.componentElement) {
       const eventElements = this.componentElement?.querySelectorAll("[data-limbo-event]");
       const elementsToBind = this.filterElementsToBindEvents(eventElements, this.componentElement);
 
       elementsToBind?.forEach((element) => {
-        const event = element.getAttribute("data-limbo-event") || "";
-        const eventSplit = event.split(":");
-        if (eventSplit.length < 2) {
-          throw new Error("LimboComponent: data-limbo-event requires a value in the format 'event:method:param1:...:paramN'");
-        }
+        const events = (element.getAttribute("data-limbo-event") || "").split(";");
+        events.forEach((event) => {
+          const eventSplit = event.split(":");
+          if (eventSplit.length < 2) {
+            throw new Error("LimboComponent: data-limbo-event requires a value in the format 'event:method:param1:...:paramN'");
+          }
 
-        const params = eventSplit.slice(2);
+          const eventName = eventSplit[0];
+          const alreadyBindedElement = this.bindedEvents.find(
+            (bindedEvent) => bindedEvent.element === element && bindedEvent.eventName === eventName && !bindedEvent.navigate,
+          );
 
-        const eventName = eventSplit[0];
-        const methodName = eventSplit[1];
-        const functionExists = !!this[methodName as keyof this];
-        if (functionExists) {
-          element.addEventListener(eventName, (e) => {
-            const parsedParams = this.parseParams(params);
-            (this[methodName as keyof this] as (e: Event, ...params: (number | string | boolean | unknown)[]) => void)(e, ...parsedParams);
-          });
-        } else {
-          console.error(`Method ${methodName} not implemented in component ${this.componentId}`);
+          if (!alreadyBindedElement) {
+            const params = eventSplit.slice(2);
+
+            const methodName = eventSplit[1];
+            const functionExists = !!this[methodName as keyof this];
+            if (functionExists) {
+              const bindedEvent = {
+                element,
+                eventName,
+                navigate: false,
+                event: (e: Event) => {
+                  const parsedParams = this.parseParams(params);
+                  (this[methodName as keyof this] as (e: Event, ...params: (number | string | boolean | unknown)[]) => void)(
+                    e,
+                    ...parsedParams,
+                  );
+                },
+              };
+              element.addEventListener(eventName, bindedEvent.event);
+              this.bindedEvents.push(bindedEvent);
+            } else {
+              console.error(`Method ${methodName} not implemented in component ${this.componentId}`);
+            }
+          }
+        });
+      });
+    }
+  }
+
+  bindLimboRoutingLinks() {
+    if (this.componentElement) {
+      const routingLinks = this.componentElement?.querySelectorAll("[data-limbo-href]");
+      const elementsToBind = this.filterElementsToBindEvents(routingLinks, this.componentElement);
+
+      elementsToBind?.forEach((element) => {
+        const alreadyBindedElement = this.bindedEvents.find(
+          (bindedEvent) => bindedEvent.element === element && bindedEvent.eventName === "click" && bindedEvent.navigate,
+        );
+
+        if (!alreadyBindedElement) {
+          const routePath = element.getAttribute("data-limbo-href") || "/";
+
+          const bindedEvent = {
+            element,
+            eventName: "click",
+            navigate: true,
+            event: (e: Event) => {
+              e.preventDefault();
+
+              Limbo.navigate(routePath);
+            },
+          };
+
+          element.addEventListener("click", bindedEvent.event);
+          this.bindedEvents.push(bindedEvent);
         }
       });
     }
   }
 
-  protected abstract OnComponentLoaded(): void;
+  protected abstract onMount(): void;
+  protected abstract onUnmount(): void;
 }

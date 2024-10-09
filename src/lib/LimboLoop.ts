@@ -1,27 +1,83 @@
-import Limbo from "./Limbo";
+import Limbo, { LimboMountableElement } from "./Limbo";
 import { LimboArray } from "./LimboArray";
+import { LimboComponent } from "./LimboComponent";
 import { _LimboModel } from "./LimboModel";
 
-export class LimboLoop {
+export class LimboLoop implements LimboMountableElement {
   private loopElements: { [key: string]: HTMLElement } = {};
   private loopHtml: string = "";
   private _limboNodesIds: { [key: number]: number[] } = {};
+  private mountedChilds: { [key: string]: LimboMountableElement[] } = {};
+  private array: LimboArray<unknown>;
 
   constructor(
     private loopId: string,
     private baseLoopElement: HTMLElement,
     private itemName: string,
-    private array: LimboArray<unknown>,
+    private parentComponent: LimboComponent<unknown>,
+    array?: LimboArray<unknown>,
   ) {
     this.loopHtml = this.baseLoopElement.outerHTML;
     this.baseLoopElement.id = this.loopId;
     this.baseLoopElement.innerHTML = "";
-    Limbo.attachLoopToArrayReference(this.array.getArrayReference(), this);
-    this.renderLoop();
+
+    if (array) {
+      this.array = array;
+    } else {
+      this.array = new LimboArray();
+    }
   }
 
   get limboNodesIds(): { [key: number]: number[] } {
     return this._limboNodesIds;
+  }
+
+  unmount(): void {
+    this.unmountChilds();
+    this.array.forEach((_, index) => {
+      this.loopElements[`${this.itemName}-${index}`].remove();
+      Limbo.clearLimboNodes(this._limboNodesIds[index]);
+    });
+    this.baseLoopElement.remove();
+    Limbo.detachLoopFromArrayReference(this.array.getArrayReference(), this);
+    Limbo.removeRenderedLoop(this.loopId);
+  }
+
+  private mountChilds(startIndex: number, length: number) {
+    for (let i = startIndex + 1; i <= length; i++) {
+      const item = this.array[i];
+      const loopElement = this.loopElements[`${this.itemName}-${i}`];
+      if (item instanceof _LimboModel) {
+        this.mountedChilds[`${this.itemName}-${i}`] = Limbo.bootstrap(loopElement, {
+          loopItemModel: item,
+          parentComponent: this.parentComponent,
+        });
+      } else {
+        this.mountedChilds[`${this.itemName}-${i}`] = Limbo.bootstrap(loopElement, { parentComponent: this.parentComponent });
+      }
+    }
+  }
+
+  private unmountChilds(key?: string): void {
+    if (key) {
+      while (this.mountedChilds[key].length > 0) {
+        this.mountedChilds[key].pop()?.unmount();
+      }
+      delete this.mountedChilds[key];
+    } else {
+      Object.keys(this.mountedChilds).forEach((key) => {
+        while (this.mountedChilds[key].length > 0) {
+          this.mountedChilds[key].pop()?.unmount();
+        }
+        delete this.mountedChilds[key];
+      });
+      this.mountedChilds = {};
+    }
+  }
+
+  mount() {
+    Limbo.attachLoopToArrayReference(this.array.getArrayReference(), this);
+    this.renderLoop();
   }
 
   attachArray(limboArray: LimboArray<unknown>) {
@@ -29,10 +85,6 @@ export class LimboLoop {
     const newArrayLastIndex = limboArray.length - 1;
     this.array = limboArray;
     this.refresh(currentArrayLastIndex, newArrayLastIndex);
-  }
-
-  detachFromModel() {
-    Limbo.detachLoopFromArrayReference(this.array.getArrayReference(), this);
   }
 
   private refresh(currentArrayLastIndex: number, newArrayLastIndex: number) {
@@ -43,24 +95,19 @@ export class LimboLoop {
 
       this.array.bindValues();
 
-      for (let i = currentArrayLastIndex + 1; i <= newArrayLastIndex; i++) {
-        const item = this.array[i];
-        const loopElement = this.loopElements[`${this.itemName}-${i}`];
-        if (item instanceof _LimboModel) {
-          Limbo.bootstrap(loopElement, { loopItemModel: item });
-        } else {
-          Limbo.bootstrap(loopElement);
-        }
-      }
+      this.mountChilds(currentArrayLastIndex, newArrayLastIndex);
+
+      this.parentComponent.bindEvents();
+      this.parentComponent.bindLimboRoutingLinks();
     } else if (currentArrayLastIndex > newArrayLastIndex) {
       for (let i = currentArrayLastIndex; i > newArrayLastIndex; i--) {
+        this.unmountChilds(`${this.itemName}-${i}`);
         this.loopElements[`${this.itemName}-${i}`].remove();
         delete this.loopElements[`${this.itemName}-${i}`];
         Limbo.clearLimboNodes(this._limboNodesIds[i]);
         delete this._limboNodesIds[i];
       }
 
-      Limbo.deBootstrap();
       this.array.bindValues();
     } else {
       this.array.bindValues();
@@ -74,19 +121,15 @@ export class LimboLoop {
 
     this.array.bindValues();
 
-    this.array.forEach((item, index) => {
-      const loopElement = this.loopElements[`${this.itemName}-${index}`];
-      if (item instanceof _LimboModel) {
-        Limbo.bootstrap(loopElement, { loopItemModel: item });
-      } else {
-        Limbo.bootstrap(loopElement);
-      }
-    });
+    this.mountChilds(0, this.array.length);
+
+    this.parentComponent.bindEvents();
+    this.parentComponent.bindLimboRoutingLinks();
   }
 
   private renderLoopElement(index: number) {
-    const auxElement = document.createElement("div");
-    auxElement.innerHTML = this.loopHtml.replace("{{#index}}", `${index}`);
+    const auxElement = this.baseLoopElement.parentElement?.cloneNode(true) as HTMLElement;
+    auxElement.innerHTML = this.loopHtml.replace(/({{#index}})/g, `${index}`);
     const newElement = auxElement.firstElementChild as HTMLElement;
     newElement.removeAttribute("data-limbo-loop");
     newElement.dataset.limboLoopItem = "true";

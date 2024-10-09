@@ -6,6 +6,6 @@ export type { LimboComponentOptions };
 
 const Limbo = {
   LimboComponent,
-  Bootstrap: (element: HTMLElement, options?: LimboBootstrapOptions) => limboInstance.bootstrap(element, options),
+  Bootstrap: (element: HTMLElement, options?: LimboBootstrapOptions) => limboInstance.bootstrap(element, { ...options, firstLoad: true }),
 };
 export default Limbo;

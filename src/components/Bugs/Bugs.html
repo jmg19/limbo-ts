@@ -1,0 +1,33 @@
+<h1>The bugs page</h1>
+<p></p>
+<div class="bugs-content">
+  <div class="bugs-list">
+    <div>
+      <table>
+        <thead>
+          <tr>
+            <th>name</th>
+            <th>powerLevel</th>
+            <th>health</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr data-limbo-loop="{{item of model.bugs}}" >
+            <td>
+              <a data-limbo-href="/Bugs/{{item.name}}" >{{item.name}}</a>
+            </td>
+            <td>{{item.powerLevel}}</td>
+            <td>{{item.health}}</td>
+            <td>
+              <button type="button" data-limbo-event="click:bugClick:{{#index}}" >Go!</button>
+            </td>
+          </tr>
+        </tbody> 
+      </table>
+    </div>
+  </div>
+  <div class="bug-container">
+    <div data-limbo-routing="bugs-route"></div>
+  </div>
+</div>

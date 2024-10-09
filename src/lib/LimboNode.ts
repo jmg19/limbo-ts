@@ -58,6 +58,9 @@ export class LimboNode<T = string | number | boolean | ((...params: unknown[]) =
 
       if (this.attributeNameToReplaceValue === "data-limbo-src") {
         currentHtmlElement.setAttribute("src", appendedValue);
+      } else if (this.attributeNameToReplaceValue === "data-limbo-href") {
+        currentHtmlElement.setAttribute("href", appendedValue);
+        currentHtmlElement.setAttribute(this.attributeNameToReplaceValue, appendedValue);
       } else {
         currentHtmlElement.setAttribute(this.attributeNameToReplaceValue, appendedValue);
       }
