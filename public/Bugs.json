@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Spider",
+    "description": "A spider is a type of bug that has eight legs and can be found in many places around the world.",
+    "image": "https://hips.hearstapps.com/hmg-prod/images/jumping-spider-royalty-free-image-1568321050.jpg",
+    "powerLevel": 1,
+    "health": 10
+  },
+  {
+    "name": "Ant",
+    "description": "An ant is a type of bug that can be found in many places around the world. They are known for their ability to work together in large groups.",
+    "image": "https://cdn.britannica.com/42/223142-050-7033F421/Red-ant-on-a-green-branch.jpg",
+    "powerLevel": 2,
+    "health": 20
+  },
+  {
+    "name": "Beetle",
+    "description": "A beetle is a type of bug that can be found in many places around the world. They are known for their hard shells and ability to fly.",
+    "image": "https://i.guim.co.uk/img/media/60947a7d8467637549ecaf2de916db57664b63e9/1808_915_5195_3116/master/5195.jpg?width=1200&quality=85&auto=format&fit=max&s=7407a85ff8761088089d35af3a7ab9a0",
+    "powerLevel": 3,
+    "health": 30
+  },
+  {
+    "name": "Butterfly",
+    "description": "A butterfly is a type of bug that can be found in many places around the world. They are known for their beautiful wings and ability to fly.",
+    "image": "https://cdn.britannica.com/13/225313-050-3519547A/Lime-butterfly-Papilio-demoleus-feeding-on-flower.jpg",
+    "powerLevel": 4,
+    "health": 40
+  },
+  {
+    "name": "Caterpillar",
+    "description": "A caterpillar is a type of bug that can be found in many places around the world. They are known for their ability to turn into butterflies.",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Chenille_de_Grand_porte_queue_%28macaon%29.jpg/800px-Chenille_de_Grand_porte_queue_%28macaon%29.jpg",
+    "powerLevel": 5,
+    "health": 50
+  },
+  {
+    "name": "Dragonfly",
+    "description": "A dragonfly is a type of bug that can be found in many places around the world. They are known for their ability to fly fast and catch other bugs.",
+    "image": "https://www.treehugger.com/thmb/1UGEjB6ykn52cVpLFitfw2vqwsY=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/4-bc3246043abe473ab750f039b5c70b53.jpg",
+    "powerLevel": 6,
+    "health": 60
+  },
+  {
+    "name": "Firefly",
+    "description": "A firefly is a type of bug that can be found in many places around the world. They are known for their ability to light up at night.",
+    "image": "https://i.natgeofe.com/n/42a51b43-dcf5-4bbb-9f2e-df1fb14fbd9c/3.jpg",
+    "powerLevel": 7,
+    "health": 70
+  },
+  {
+    "name": "Grasshopper",
+    "description": "A grasshopper is a type of bug that can be found in many places around the world. They are known for their ability to jump high and far.",
+    "image": "https://files.aptuitivcdn.com/Pqnz49oyx5-1775/images/grasshopper-identification.jpg",
+    "powerLevel": 8,
+    "health": 80
+  },
+  {
+    "name": "Ladybug",
+    "description": "A ladybug is a type of bug that can be found in many places around the world. They are known for their red and black spots and ability to eat other bugs.",
+    "image": "https://i.natgeofe.com/k/47bb0144-f7d1-4a28-a102-834a590f6e57/ladybug-leaf.jpg?wp=1&w=1084.125&h=609",
+    "powerLevel": 9,
+    "health": 90
+  },
+  {
+    "name": "Moth",
+    "description": "A moth is a type of bug that can be found in many places around the world. They are known for their ability to fly at night and be attracted to light.",
+    "image": "https://d18lev1ok5leia.cloudfront.net/chesapeakebay/images/_900xAUTO_crop_center-center_100_none/jul_21_20_1800-01.jpg",
+    "powerLevel": 10,
+    "health": 100
+  }
+]

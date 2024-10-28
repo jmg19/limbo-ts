@@ -1,23 +1,40 @@
-import Limbo from "./Limbo";
+import Limbo, { LimboMountableElement } from "./Limbo";
+import { LimboComponent } from "./LimboComponent";
 import { _LimboModel, LimboModel } from "./LimboModel";
 
-export class LimboSwitch {
+export class LimboSwitch implements LimboMountableElement {
   private renderedSwitchElement?: HTMLElement;
   private switchInnerHtml: { [key: string | number]: string } = {};
   private _limboNodesIds: number[] = [];
   private baseSwitchValues: (string | number)[] = [];
   private currentSwitchValue?: number | string;
+  private mountedChilds: LimboMountableElement[] = [];
 
   constructor(
     private baseSwitchElement: HTMLElement,
     private switchId: string,
     private parentModel: LimboModel<unknown>,
+    private parentComponent: LimboComponent<unknown>,
     private modelReference: string,
   ) {
     this.extractInnerHtmlOptions(this.baseSwitchElement.innerHTML);
     this.baseSwitchElement.innerHTML = "";
     this.currentSwitchValue = this.parentModel.getByModelReference(this.modelReference) as number | string;
-    this.renderSwitch();
+  }
+
+  private mountChilds(): void {
+    if (this.renderedSwitchElement) {
+      this.mountedChilds = Limbo.bootstrap(this.renderedSwitchElement, {
+        parentComponentModel: this.parentModel,
+        parentComponent: this.parentComponent,
+      });
+    }
+  }
+
+  private unmountChilds(): void {
+    while (this.mountedChilds.length > 0) {
+      this.mountedChilds.pop()?.unmount();
+    }
   }
 
   private extractInnerHtmlOptions(innerHTML: string) {
@@ -55,10 +72,6 @@ export class LimboSwitch {
     this.parentModel = limboModel;
   }
 
-  detachFromModel() {
-    Limbo.detachSwitchFromModelReference(this.modelReference, this);
-  }
-
   refresh(value: number | string) {
     if (value !== this.currentSwitchValue) {
       if (this.baseSwitchValues.includes(value)) {
@@ -70,14 +83,23 @@ export class LimboSwitch {
         this.currentSwitchValue = undefined;
       }
 
-      this.renderSwitch();
+      this.mount();
     }
   }
 
-  private renderSwitch() {
+  unmount(): void {
+    this.unmountChilds();
+    this.renderedSwitchElement?.remove();
+    this.baseSwitchElement.remove();
+    Limbo.clearLimboNodes(this._limboNodesIds);
+    Limbo.detachSwitchFromModelReference(this.modelReference, this);
+    Limbo.removeRenderedSwitch(this.switchId);
+  }
+
+  mount() {
     this.baseSwitchElement.id = this.switchId;
 
-    this.deBootstrapOldOption();
+    this.unmountOldOption();
 
     this.renderedSwitchElement = this.baseSwitchElement.cloneNode(true) as HTMLElement;
     this.renderedSwitchElement.style.display = "";
@@ -98,17 +120,20 @@ export class LimboSwitch {
 
     this.parentModel.bindValues();
 
-    Limbo.bootstrap(this.renderedSwitchElement, { parentComponentModel: this.parentModel });
+    this.mountChilds();
+
+    this.parentComponent.bindEvents();
+    this.parentComponent.bindLimboRoutingLinks();
   }
 
-  private deBootstrapOldOption() {
+  private unmountOldOption() {
     if (this.renderedSwitchElement) {
+      this.unmountChilds();
       this.renderedSwitchElement.remove();
       delete this.renderedSwitchElement;
       this.renderedSwitchElement = undefined;
       Limbo.clearLimboNodes(this._limboNodesIds);
       this._limboNodesIds = [];
-      Limbo.deBootstrap();
     }
   }
 }

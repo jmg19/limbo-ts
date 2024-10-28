@@ -11,10 +11,14 @@ export class NestedOfNestedComponent extends LimboComponent<NestedOfNestedCompon
     super(componentId, html, options);
   }
 
-  protected override OnComponentLoaded(): void {
+  protected override onMount(): void {
     const nestedOfInput = this.componentElement?.querySelector("[name='nested-of-input']");
     nestedOfInput?.addEventListener("change", (event) => {
       this.limboModel!.value = (event.target as HTMLInputElement).value;
     });
+  }
+
+  protected override onUnmount(): void {
+    console.log("NestedOfNestedComponent unmounting...");
   }
 }

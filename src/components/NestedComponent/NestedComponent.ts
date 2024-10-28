@@ -16,8 +16,8 @@ export class NestedComponent extends LimboComponent<NestedComponentModel> {
     super(componentId, html, options);
   }
 
-  protected override OnComponentLoaded(): void {
-    this.setModel({
+  protected override onMount(): void {
+    this.setModelData({
       someId: "bla bla bla bla",
       value: "",
       nestedOfNested: {
@@ -27,9 +27,12 @@ export class NestedComponent extends LimboComponent<NestedComponentModel> {
     });
   }
 
-  onChange(event: Event, abc: boolean) {
+  protected override onUnmount(): void {
+    console.log("NestedComponent unmounting...");
+  }
+
+  onChange(event: Event) {
     const target = event.target as HTMLInputElement;
     this.limboModel.value = target.value;
-    console.log(abc);
   }
 }

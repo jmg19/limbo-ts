@@ -1,8 +1,8 @@
 import { LimboComponent, LimboComponentOptions } from "../../lib";
-import typescriptLogo from "../../typescript.svg";
-import viteLogo from "../../vite.svg";
 import "./ExampleComponent.css";
 import html from "./ExampleComponent.html?raw";
+import typescriptLogo from "/typescript.svg";
+import viteLogo from "/vite.svg";
 
 type ExampleComponentModel = {
   viteLogo: string;
@@ -42,8 +42,13 @@ export class ExampleComponent extends LimboComponent<ExampleComponentModel> {
   //   this.limboModel.xpto = null;
   // }
 
-  protected override OnComponentLoaded(): void {
-    this.setModel({
+  xptoSelectChange(event: Event) {
+    const target = event.target as HTMLSelectElement;
+    this.limboModel.xpto = target.value;
+  }
+
+  protected override onMount(): void {
+    this.setModelData({
       viteLogo,
       typescriptLogo,
       counter: 0,
@@ -81,5 +86,9 @@ export class ExampleComponent extends LimboComponent<ExampleComponentModel> {
     //     }, 5000);
     //   }, 5000);
     // }, 5000);
+  }
+
+  protected override onUnmount(): void {
+    console.log("ExampleComponent unmounting...");
   }
 }

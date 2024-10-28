@@ -8,8 +8,8 @@ type CreateAndBindResponse<T> = {
 export const LimboModelFactory = {
   create: <T>(data: LimboNodeParams<T>): CreateAndBindResponse<T> => {
     if (data.model instanceof _LimboModel) {
-      if (data.alias) {
-        data.model.setAlias(data.alias);
+      if (data.modelReference) {
+        data.model.setModelReference(data.modelReference);
       }
 
       return {
