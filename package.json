@@ -1,18 +1,45 @@
 {
-  "name": "limbots",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "limbo-ts",
+  "description": "Typescript library that offers a simple way to create a SPA with a MVC approach",
+  "version": "0.1.1",
+  "author": "Jorge Gonçalves <jmogoncalves@hotmail.com> (https://github.com/jmg19)",
+  "license": "GPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmg19/limbo-ts"
+  },
+  "bugs": {
+    "url": "https://github.com/jmg19/limbo-ts/issues"
+  },
+  "homepage": "https://github.com/jmg19/limbo-ts",
+  "keywords": [
+    "Limbo-Ts",
+    "SPA",
+    "MVC",
+    "Typescript",
+    "Model",
+    "View",
+    "Controller",
+    "Component"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsup",
+    "vite-dev": "vite",
+    "vite-build": "tsc && vite build",
+    "vite-preview": "vite preview"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
     "eslint": "^9.9.1",
     "globals": "^15.9.0",
     "prettier": "3.3.3",
+    "tsup": "^8.3.5",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.4.0",
     "vite": "^5.4.1"
