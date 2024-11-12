@@ -2,13 +2,28 @@ import Limbo, { LimboMountableElement } from "./Limbo";
 import { LimboModelFactory } from "./LimboFactory";
 import { LimboModel } from "./LimboModel";
 
-export type LimboComponentOptions<T, RoutingParams = void> = {
+export class RoutingParams {
+  constructor(private params: unknown) {}
+  get<T>() {
+    return this.params as T;
+  }
+}
+
+export class Injections {
+  constructor(private injections: unknown) {}
+  get<T>() {
+    return this.injections as T;
+  }
+}
+
+export type LimboComponentOptions<T> = {
   model?: T;
   modelReference?: string;
   routingParams?: RoutingParams;
+  injections?: Injections;
 };
 
-export abstract class LimboComponent<T, RoutingParams = void> implements LimboMountableElement {
+export abstract class LimboComponent<T> implements LimboMountableElement {
   setLimboModelData(data: T) {
     this.setModelData(data);
   }
@@ -24,7 +39,7 @@ export abstract class LimboComponent<T, RoutingParams = void> implements LimboMo
   constructor(
     protected componentId: string,
     html: string,
-    options: LimboComponentOptions<T, RoutingParams> = {},
+    options: LimboComponentOptions<T> = {},
   ) {
     this.componentElement = document.getElementById(this.componentId);
     this.htmlContainer = document.createElement("div");

@@ -19,7 +19,7 @@ export class BugComponent extends LimboComponent<BugComponentModel> {
 
   constructor(componentId: string, options?: LimboComponentOptions<BugComponentModel>) {
     super(componentId, html, options);
-    this.bugName = (options?.routingParams as RouteParams | undefined)?.name || "";
+    this.bugName = options?.routingParams?.get<RouteParams>().name || "";
   }
 
   protected override onMount(): void {

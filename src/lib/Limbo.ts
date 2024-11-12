@@ -1,6 +1,6 @@
 import "./Limbo.css";
 import { LimboArray } from "./LimboArray";
-import { LimboComponent } from "./LimboComponent";
+import { Injections, LimboComponent, RoutingParams } from "./LimboComponent";
 import { LimboCondition } from "./LimboCondition";
 import { LimboLoop } from "./LimboLoop";
 import { _LimboModel, LimboModel } from "./LimboModel";
@@ -13,15 +13,16 @@ export interface LimboMountableElement {
   unmount(): void;
 }
 
-export type LimboBootstrapOptions = {
+export type LimboBootstrapOptions<T = unknown, S = unknown> = {
   components?: { [key: string]: Type<LimboComponent<unknown>> };
   limboRoutes?: { routingName: string; routes: { path: string; component: Type<LimboComponent<unknown>> }[] }[];
   parentComponent?: LimboComponent<unknown>;
   parentComponentModel?: LimboModel<unknown>;
   loopItemModel?: LimboModel<unknown>;
   modelPrefix?: string;
-  routingParams?: unknown;
+  routingParams?: T;
   firstLoad?: boolean;
+  injections?: S;
 };
 
 class Limbo {
@@ -41,6 +42,7 @@ class Limbo {
   private generatedLimboNodes: { [key: string]: LimboNode[] } = {};
   private pendingLogic: (() => void)[] = [];
   private routingsRenderedAfterHistoryPopState: { [key: string]: boolean } = {};
+  private injections?: Injections;
 
   private constructor() {}
 
@@ -221,10 +223,15 @@ class Limbo {
           }
         }
 
+        let routingParams = undefined;
+        if (options.routingParams) {
+          routingParams = new RoutingParams(options.routingParams);
+        }
         const component = new this.aplicationComponents[componentName](componentId, {
           model,
           modelReference: modelFullReference,
-          routingParams: options.routingParams,
+          routingParams: routingParams,
+          injections: this.injections,
         }) as LimboComponent<unknown>;
         this.renderedComponents[componentId] = component;
         component.mount();
@@ -393,6 +400,12 @@ class Limbo {
       for (const routeGroup of this.limboRoutes) {
         this.routingsRenderedAfterHistoryPopState[routeGroup.routingName] = false;
       }
+    }
+
+    if (!this.injections && options.injections) {
+      this.injections = new Injections(options.injections);
+    } else if (!this.injections) {
+      this.injections = new Injections({});
     }
 
     const mountableElements: LimboMountableElement[] = [];
