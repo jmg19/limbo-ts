@@ -40,5 +40,8 @@ import "./style.css";
         routes: [{ component: BugComponent, path: "/Bugs/:name" }],
       },
     ],
+    injections: {
+      abc: "123",
+    },
   });
 })();
