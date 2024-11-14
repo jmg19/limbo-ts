@@ -84,6 +84,141 @@ When we bind a model reference to the `src` attribute our DOM will generate an e
 <img data-limbo-src="{{model.imageUrl}}" alt="{{model.imageName}}" />
 ```
 
+# Injections
+
+To make easier to setup your own dependency injections or use your preferred library, it was provided the property `injections` in the type `LimboBootstrapOptions`.
+
+**`LimboBootstrapOptions<T = unknown, S = unknown>`**
+```typescript
+
+type LimboBootstrapOptions<T = unknown, S = unknown> = {
+  components?: { [key: string]: Type<LimboComponent<unknown>> };
+  limboRoutes?: { routingName: string; routes: { path: string; component: Type<LimboComponent<unknown>> }[] }[];
+  parentComponent?: LimboComponent<unknown>;
+  parentComponentModel?: LimboModel<unknown>;
+  loopItemModel?: LimboModel<unknown>;
+  modelPrefix?: string;
+  routingParams?: T;
+  firstLoad?: boolean;
+  injections?: S; // on this property you can inject anything you want to use in your Limbo Components
+};
+
+```
+
+#### Example
+
+**Some dependencies**
+```typescript
+export interface IAbcService {
+	getAbcSubsets(): any[];
+	getAbcSubset(name: string): any
+}
+
+export class AbcService implements IAbcService {
+
+	public async getAbcSubsets(): Promise<any[]> {
+		// logic to get some data and return
+	}
+	
+	public async getAbcSubset(name: string): Promise<any> {
+		// logic to get some data and return
+	}
+}
+
+export interface IServicesFactory {
+	createAbsService(): IAbcService;
+}
+
+export class ServicesFactory implements IServicesFactory {
+
+	public createAbsService(): IAbcService {
+		return new AbcService();
+	}
+}
+```
+
+**main.ts**
+```typescript
+
+// this type can be anything that fits your needs
+export type MyAppInjections {
+	servicesFactory: IServicesFactory
+}
+
+(() => {
+  const appElement = document.querySelector<HTMLDivElement>("#element-to-be-bootstraped");
+  if (!appElement) {
+    throw new Error("div with id 'element-to-be-bootstraped' is necessary to start the Limbo Application");
+  }
+
+  Limbo.Bootstrap(appElement, {
+    components: {
+      PageAbcComponent,
+      PageXptoComponent,
+      HomeComponent,
+      PageAbcSubSetComponent
+    },
+    limboRoutes: [
+      {
+        routingName: "main-route",
+        routes: [
+          { component: PageAbcComponent, path: "/Abc" },
+          { component: PageXptoComponent, path: "/Xpto" },
+          { component: HomeComponent, path: "/" },
+        ],
+      },
+      {
+        routingName: "sub-route",
+        routes: [{ component: PageAbcSubSetComponent, path: "/Abc/:name" }],
+      },
+    ],
+    injections: {
+	    servicesFactory: new ServicesFactory();
+    }
+  });
+})();
+
+```
+
+**PageAbcSubSetComponent**
+```typescript
+
+type PageAbcSubSetComponentModel = {
+  name: string;
+  description: string;
+  image: string;
+  powerLevel: number;
+  health: number;
+};
+
+type RouteParams = {
+  name: string;
+};
+
+export class PageAbcSubSetComponent extends LimboComponent<BugComponentModel> {
+  private name: string = "";
+  private servicesFactory: IServiceFactory;
+
+  constructor(componentId: string, options?: LimboComponentOptions<BugComponentModel>) {
+    super(componentId, html, options);
+    this.name = options?.routingParams?.get<RouteParams>().name || "";
+    // here get your injection typed for your previous defened structure
+    this.servicesFactory = options?.injections?.get<MyAppInjections>()!;
+  }
+
+  protected override async onMount(): Promise<void> {
+	const service = this.servicesFactory.createAbsService();
+    const data = await service.getAbcSubset(name);
+    // Do something with your data
+  }
+
+  protected override onUnmount(): void {
+    console.log("BugComponent unmounting...");
+  }
+}
+
+```
+
 <br>
 <br>
 <br>

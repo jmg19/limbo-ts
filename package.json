@@ -1,7 +1,7 @@
 {
   "name": "limbo-ts",
   "description": "Typescript library that offers a simple way to create a SPA with a MVC approach",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "author": "Jorge Gonçalves <jmogoncalves@hotmail.com> (https://github.com/jmg19)",
   "license": "GPL-3.0-only",
   "repository": {
@@ -13,14 +13,16 @@
   },
   "homepage": "https://github.com/jmg19/limbo-ts",
   "keywords": [
-    "Limbo-Ts",
-    "SPA",
-    "MVC",
-    "Typescript",
-    "Model",
-    "View",
-    "Controller",
-    "Component"
+    "limbo-ts",
+    "spa",
+    "mvc",
+    "typescript",
+    "model",
+    "view",
+    "controller",
+    "component",
+    "front-end",
+    "framework"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

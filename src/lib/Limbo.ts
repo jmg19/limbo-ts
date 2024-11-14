@@ -404,8 +404,6 @@ class Limbo {
 
     if (!this.injections && options.injections) {
       this.injections = new Injections(options.injections);
-    } else if (!this.injections) {
-      this.injections = new Injections({});
     }
 
     const mountableElements: LimboMountableElement[] = [];
