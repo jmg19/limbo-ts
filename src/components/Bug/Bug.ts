@@ -22,15 +22,13 @@ export class BugComponent extends LimboComponent<BugComponentModel> {
     this.bugName = options?.routingParams?.get<RouteParams>().name || "";
   }
 
-  protected override onMount(): void {
-    fetch("/Bugs.json").then((response) => {
-      response.json().then((data) => {
-        const bug = data.find((bug: BugComponentModel) => bug.name === this.bugName);
-        if (bug) {
-          this.setModelData(bug);
-        }
-      });
-    });
+  protected override async onMount(): Promise<void> {
+    const response = await fetch("/Bugs.json");
+    const data = await response.json();
+    const bug = data.find((bug: BugComponentModel) => bug.name === this.bugName);
+    if (bug) {
+      this.setModelData(bug);
+    }
   }
 
   protected override onUnmount(): void {

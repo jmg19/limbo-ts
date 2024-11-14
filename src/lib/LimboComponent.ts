@@ -265,6 +265,6 @@ export abstract class LimboComponent<T> implements LimboMountableElement {
     }
   }
 
-  protected abstract onMount(): void;
-  protected abstract onUnmount(): void;
+  protected abstract onMount(): Promise<void> | void;
+  protected abstract onUnmount(): Promise<void> | void;
 }

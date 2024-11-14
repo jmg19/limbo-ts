@@ -57,6 +57,22 @@ To append your component to the HTML DOM you have to use the attribute `data-lim
 	<div id="some-id-for-your-component" data-limbo-component="SomeComponent"></div>
 ```
 
+### onMount and onUmount
+
+The **`onMount`** function invokes any logic that feels right to you when the component is ready. You can declare it in your component as **`void`** or as **`Promise<void>`** 
+The **`onUnmount`** function invokes any logic that feels right to you when the component is being removed or unloaded from your application. You can also declare it in your component as **`void`** or as **`Promise<void>`**.
+
+```typescript
+export abstract class LimboComponent<T> implements LimboMountableElement {
+// (...)
+
+protected abstract onMount(): Promise<void> | void;
+protected abstract onUnmount(): Promise<void> | void;
+
+// (...)
+}
+```
+
 ### Limbo Events
 
 You can easily bind an HTML DOM event to a rendered element in your component. For that you can use the attribute `data-limbo-event` with the following pattern `eventName:methodName:param1:...:paramN`. On your component class you just have to define corresponding method like the following:

@@ -5,14 +5,19 @@ It has the goal of offering you an MVC-like approach for your single-page applic
 
 # How to get started?
 
-In theory, you can use any local development server in NodeJs to serve your SPA using Limbo-Ts, but because I started this development from a Vite vanilla Typescript project (https://vite.dev/guide), to minimize any unexpected issues, I advise you to get started from there. After you have your project created you just have to get the Limbo-Ts library from npm.
+In theory, you can use any local development server in NodeJs to serve your SPA using Limbo-Ts, but because I started this development from a Vite Vanilla Typescript project (https://vite.dev/guide), to minimize any unexpected issues, I advise you to get started from there. To create an empty Vite Vanilla Typescript project you can use this comand.
+
+```shell
+npm create vite@latest my-limbo-app -- --template vanilla-ts
+```
+
+After you have your project created you just have to get the Limbo-Ts library from npm.
 
 ```shell
 npm i limbo-ts
 ```
 
 After installing, you can start by creating some component add the reference to the Limbo-Ts framework.
-
 #### Example
 
 **index.html**
@@ -83,10 +88,10 @@ export class SomeComponent extends LimboComponent<SomeComponentModel> {
 <h1>{{model.title}}</h1>
 ```
 
-for more docs you can go to [Getting Started](docs/Getting%20Started.md)
+for more docs you can go to [Getting Started](https://github.com/jmg19/limbo-ts/blob/release/1.0.0/docs/Getting%20Started.md)
 # Contributions
 
-I don't want the library to get too complicated or have a lot of features and tools that in the future could potentially turn into some kind of limitation or bottleneck on the development side. Having said this, additional code to handle Dependencies Injections, HTTP request calls, and others will be not taken into account for this library. I will add in the docs some suggestions to be followed but the purpose is to implement Front End applications your way, so I will only give attention to contributions or requests that will make the current Limbo tools better.
+I don't want the library to get too complicated or have a lot of features and tools that in the future could potentially turn into some kind of limitation or bottleneck on the development side. Having said this, additional code to handle Dependencies Injections, HTTP request calls, and others will be not taken into account for this library. I will add in the docs some suggestions to be followed but the purpose is to implement Front End applications your way, so I will only give attention to contributions or requests that will make the current Limbo-Ts library better.
 
 # Support
 
